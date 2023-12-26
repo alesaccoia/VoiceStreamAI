@@ -1,4 +1,10 @@
-// JavaScript Client Code (audio.js)
+/**
+ * VoiceStreamAI Client - WebSocket-based real-time transcription
+ *
+ * Contributor:
+ * - Alessandro Saccoia - alessandro.saccoia@gmail.com
+ */
+
 let websocket;
 let context;
 let processor;

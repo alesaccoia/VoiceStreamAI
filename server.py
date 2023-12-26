@@ -1,4 +1,10 @@
-# Python Server Code
+"""
+VoiceStreamAI Server: Real-time audio transcription using self-hosted Whisper and WebSocket
+
+Contributors:
+- Alessandro Saccoia - alessandro.saccoia@gmail.com
+"""
+
 import asyncio
 import websockets
 import uuid
