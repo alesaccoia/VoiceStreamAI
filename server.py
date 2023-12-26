@@ -111,6 +111,9 @@ async def transcribe_and_send(client_id, websocket, new_audio_data):
         if result['text']:
             await websocket.send(result['text'])
             client_temp_buffers[client_id].clear() # Clear temp buffer after processing
+    else:
+        client_temp_buffers[client_id].clear()
+        print(f"Skipping because {last_segment.end} is less than {(len(audio_data) / (SAMPLES_WIDTH * SAMPLING_RATE)) - int(client_configs[client_id]['chunk_offset_seconds'])}")
     
     os.remove(file_name) # in the end always delete the created file
 
