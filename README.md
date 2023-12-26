@@ -110,6 +110,7 @@ function sendAudioConfig() {
     };
     websocket.send(JSON.stringify(audioConfig));
 }
+```
 
 ## Areas for Improvement
 
@@ -128,5 +129,5 @@ This project is open for contributions. Feel free to fork the repository and sub
 
 ## License
 
-VoiceStreamAI is open-sourced under the MIT License.
+VoiceStreamAI is a proof of concept, do whatever you want with it.
 
