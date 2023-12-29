@@ -26,7 +26,6 @@ AUDIO_CHANNELS = 1
 SAMPLES_WIDTH = 2 # int16
 DEBUG = True
 VAD_AUTH_TOKEN = "FILL ME" # get your key here -> https://huggingface.co/pyannote/segmentation
-VAD_AUTH_TOKEN = "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"
 
 DEFAULT_CLIENT_CONFIG = {
     "language" : None, # multilingual
