@@ -3,7 +3,7 @@ FROM ghcr.io/shoppal-ai/llm-base
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
 
-RUN apt update && apt install -y zsh curl git sudo wget libsndfile1
+RUN apt update && apt install -y zsh curl git sudo wget libsndfile1 ffmpeg
 
 # # install python environment
 # RUN apt install -y python3.8-dev python3-pip 
