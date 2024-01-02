@@ -19,7 +19,7 @@ from pyannote.core import Segment
 from pyannote.audio import Model
 from pyannote.audio.pipelines import VoiceActivityDetection
 
-HOST = 'localhost'
+HOST = '0.0.0.0'
 PORT = 8765
 SAMPLING_RATE = 16000
 AUDIO_CHANNELS = 1
@@ -30,6 +30,7 @@ VAD_AUTH_TOKEN = "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"
 
 DEFAULT_CLIENT_CONFIG = {
     "language" : None, # multilingual
+    "task": None, # transcribe
     "chunk_length_seconds" : 5,
     "chunk_offset_seconds" : 1
 }
@@ -123,10 +124,15 @@ async def transcribe_and_send(client_id, websocket, new_audio_data):
     if last_segment.end < (len(audio_data) / (SAMPLES_WIDTH * SAMPLING_RATE)) - int(client_configs[client_id]['chunk_offset_seconds']):
         start_time_transcription = time.time()
         
-        if client_configs[client_id]['language'] is not None:
-            result = recognition_pipeline(file_name, generate_kwargs={"language": client_configs[client_id]['language']})
-        else:
-            result = recognition_pipeline(file_name)
+        kwargs = {}
+
+        if 'language' in client_configs[client_id] and client_configs[client_id]['language'] is not None:
+            kwargs['language'] = client_configs[client_id]['language']
+
+        if 'task' in client_configs[client_id] and client_configs[client_id]['task'] is not None:
+            kwargs['task'] = client_configs[client_id]['task']
+
+        result = recognition_pipeline(file_name, generate_kwargs=kwargs)
 
         transcription_time = time.time() - start_time_transcription
         if DEBUG: print(f"Transcription Time: {transcription_time:.2f} seconds")

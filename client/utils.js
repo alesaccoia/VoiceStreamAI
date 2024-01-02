@@ -9,10 +9,18 @@ let websocket;
 let context;
 let processor;
 let globalStream;
+let language;
+let task;
 
-const websocket_uri = 'ws://localhost:8765';
 const bufferSize = 4096;
 let isRecording = false;
+
+
+setTimeout(() => {
+    if (window.location.host) {
+        document.getElementById('websocketAddress').value = 'ws://' + window.location.host.split(':')[0] + ':8765';
+    }
+}, 500);
 
 function initWebSocket() {
     const websocketAddress = document.getElementById('websocketAddress').value;
@@ -20,6 +28,8 @@ function initWebSocket() {
     chunk_offset_seconds = document.getElementById('chunk_offset_seconds').value;
     const selectedLanguage = document.getElementById('languageSelect').value;
     language = selectedLanguage !== 'multilingual' ? selectedLanguage : null;
+    task = document.getElementById('taskSelect').value;
+
     
     if (!websocketAddress) {
         console.log("WebSocket address is required.");
@@ -99,7 +109,8 @@ function sendAudioConfig() {
             channels: 1, // Assuming mono channel
             chunk_length_seconds: chunk_length_seconds, 
             chunk_offset_seconds: chunk_offset_seconds,
-            language: language
+            language: language,
+            task
         }
     };
     websocket.send(JSON.stringify(audioConfig));
