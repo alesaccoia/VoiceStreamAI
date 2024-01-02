@@ -18,7 +18,7 @@ class Client:
         self.client_id = client_id
         self.buffer = bytearray()
         self.scratch_buffer = bytearray()
-        self.config = {"processing_strategy": 1, "chunk_length_seconds": 5, "chunk_offset_seconds": 1}
+        self.config = {"language": None, "processing_strategy": 1, "chunk_length_seconds": 5, "chunk_offset_seconds": 1}
         self.file_counter = 0
         self.total_samples = 0
         self.sampling_rate = sampling_rate

@@ -9,8 +9,12 @@ class WhisperASR(ASRInterface):
         self.asr_pipeline = pipeline("automatic-speech-recognition", model=model_name)
 
     async def transcribe(self, client):
-        print(f"Saving {len(client.scratch_buffer)/(16000*2)} seconds of audio to {client.get_file_name()}")
         file_path = await save_audio_to_file(client.scratch_buffer, client.get_file_name())
-        to_return = self.asr_pipeline(file_path)['text']
+        
+        if client.config['language'] is not None:
+            to_return = self.asr_pipeline(file_path, generate_kwargs={"language": client.config['language']})['text']
+        else:
+            to_return = self.asr_pipeline(file_path)['text']
+
         os.remove(file_path)
         return to_return
