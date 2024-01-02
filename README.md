@@ -33,10 +33,10 @@ For the client-side, you need a modern web browser with JavaScript support.
 
 The VoiceStreamAI server can be customized through command line arguments, allowing you to specify components, host, and port settings according to your needs.
 
-- `--vad-type`: Specifies the type of Voice Activity Detection (VAD) pipeline to use (e.g., `pyannote`).
-- `--vad-args`: A JSON string containing additional arguments for the VAD pipeline.
-- `--asr-type`: Specifies the type of Automatic Speech Recognition (ASR) pipeline to use (e.g., `whisper`).
-- `--asr-args`: A JSON string containing additional arguments for the ASR pipeline.
+- `--vad-type`: Specifies the type of Voice Activity Detection (VAD) pipeline to use (default: `pyannote`) .
+- `--vad-args`: A JSON string containing additional arguments for the VAD pipeline. (required for `pyannote`: `'{"auth_token": "VAD_AUTH_HERE"}'`)
+- `--asr-type`: Specifies the type of Automatic Speech Recognition (ASR) pipeline to use (default: `whisper`).
+- `--asr-args`: A JSON string containing additional arguments for the ASR pipeline (one can for example change `model_name` for whisper)
 - `--host`: Sets the host address for the WebSocket server (default: `localhost`).
 - `--port`: Sets the port on which the server listens (default: `8765`).
 
@@ -60,7 +60,6 @@ You can see all the command line options with the command:
 ```bash
 python3 -m src.main --help
 ```
-
 
 ## Client Usage
 
