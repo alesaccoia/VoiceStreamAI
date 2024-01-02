@@ -1,4 +1,5 @@
 transformers
 pyannote.core
 pyannote.audio
+torchvision
 websockets

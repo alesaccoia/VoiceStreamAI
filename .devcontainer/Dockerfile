@@ -1,7 +1,14 @@
-FROM python:3.8
+FROM ghcr.io/shoppal-ai/llm-base
 
-RUN pip install --no-cache-dir --upgrade pip
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+
 RUN apt update && apt install -y zsh curl git sudo wget libsndfile1
+
+# # install python environment
+# RUN apt install -y python3.8-dev python3-pip 
+# RUN update-alternatives --install /usr/bin/pthon python /usr/bin/python3.10 1 
+RUN apt install -y python3.10-venv
 
 ARG USERNAME=vscode
 ARG USER_UID=1000
@@ -17,8 +24,7 @@ USER $USERNAME
 
 RUN cd ~ && wget https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh && sh install.sh
 
-# Create and activate a Python virtual environment
-RUN python -m venv ~/venv
+RUN python3 -m venv ~/venv
 RUN echo "source ~/venv/bin/activate" >> ~/.zshrc
 
 # Set Python path in the virtual environment.
