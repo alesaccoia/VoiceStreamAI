@@ -27,16 +27,38 @@ pip install transformers pyannote.core pyannote.audio websockets
 
 For the client-side, you need a modern web browser with JavaScript support.
 
-## Server Setup
+## Configuration and Usage
 
-1. Clone the repository.
-2. Navigate to the project directory.
-3. Obtain the key to the Voice-Activity-Detection model at [https://huggingface.co/pyannote/segmentation](https://huggingface.co/pyannote/segmentation)
-4. Replace the placeholder in VAD_AUTH_TOKEN with the key you've obtained
-5. Run the server using Python 3.x:
+### Server Configuration
+
+The VoiceStreamAI server can be customized through command line arguments, allowing you to specify components, host, and port settings according to your needs.
+
+- `--vad-type`: Specifies the type of Voice Activity Detection (VAD) pipeline to use (default: `pyannote`) .
+- `--vad-args`: A JSON string containing additional arguments for the VAD pipeline. (required for `pyannote`: `'{"auth_token": "VAD_AUTH_HERE"}'`)
+- `--asr-type`: Specifies the type of Automatic Speech Recognition (ASR) pipeline to use (default: `whisper`).
+- `--asr-args`: A JSON string containing additional arguments for the ASR pipeline (one can for example change `model_name` for whisper)
+- `--host`: Sets the host address for the WebSocket server (default: `localhost`).
+- `--port`: Sets the port on which the server listens (default: `8765`).
+
+To launch the server with customized settings, use the following command structure:
 
 ```bash
-python server.py
+python3 main.py --vad-type <vad_type> --vad-args <vad_args_json> --asr-type <asr_type> --asr-args <asr_args_json> --host <host> --port <port>
+```
+
+For running the server with the standard configuration:
+
+1. Obtain the key to the Voice-Activity-Detection model at [https://huggingface.co/pyannote/segmentation](https://huggingface.co/pyannote/segmentation)
+2. Run the server using Python 3.x, please add the VAD key in the command line:
+
+```bash
+python3 -m src.main --vad-args '{"auth_token": "vad token here"}'
+```
+
+You can see all the command line options with the command: 
+
+```bash
+python3 -m src.main --help
 ```
 
 ## Client Usage
@@ -59,6 +81,12 @@ python server.py
 
 ## Technical Overview
 
+### Settings
+
+### Factory and Strategy patterns
+
+Both the VAD and the ASR components can be easily extended to integrate new techniques and use models with an different interface than HuggingFace pipelines. New processing/chunking strategies can be added in server.py, and used by the specific clients setting the "processing_strategy" key in the config.
+
 ### Voice Activity Detection (VAD)
 
 Voice Activity Detection (VAD) in VoiceStreamAI enables the system to distinguish between speech and non-speech segments within an audio stream. The primary purpose of implementing VAD is to enhance the efficiency and accuracy of the speech-to-text process:
@@ -69,7 +97,7 @@ Voice Activity Detection (VAD) in VoiceStreamAI enables the system to distinguis
 
 VoiceStreamAI uses a Huggingface VAD model to ensure reliable detection of speech in diverse audio conditions.
 
-### Buffering Strategy
+### Processing Strategy 1
 
 The buffering strategy is designed to balance between near-real-time processing and ensuring complete and accurate capture of speech segments. Here’s how buffering is managed:
 
@@ -86,8 +114,9 @@ In VoiceStreamAI, each client can have a unique configuration that tailors the t
 The client configuration can include various parameters such as language preference, chunk length, and chunk offset. For instance:
 
 - `language`: Specifies the language for transcription. If set to anything other than "multilanguage" it will force the Whisper inference to be in that language
-- `chunk_length_seconds`: Defines the length of each audio chunk to be processed.
-- `chunk_offset_seconds`: Determines the silence time at the end of each chunk needed to process audio
+- `processing_strategy`: Specifies the type of processing for this client, a sort of strategy pattern. Strategy for now aren't using OOP but they are implemented in an if/else in server.py
+- `chunk_length_seconds`: Defines the length of each audio chunk to be processed
+- `chunk_offset_seconds`: Determines the silence time at the end of each chunk needed to process audio (used by processing_strategy nr 1).
 
 ### Transmitting Configuration
 
@@ -100,11 +129,9 @@ function sendAudioConfig() {
     const audioConfig = {
         type: 'config',
         data: {
-            sampleRate: context.sampleRate,
-            bufferSize: bufferSize,
-            channels: 1, // Assuming mono channel
-            chunk_length_seconds: chunk_length_seconds, 
-            chunk_offset_seconds: chunk_offset_seconds,
+            chunk_length_seconds: 5, 
+            chunk_offset_seconds: 1,
+            processing_strategy: 1,
             language: language
         }
     };
