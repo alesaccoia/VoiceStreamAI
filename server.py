@@ -123,14 +123,11 @@ async def transcribe_and_send(client_id, websocket, new_audio_data):
         start_time_transcription = time.time()
         
         if client_configs[client_id]['language'] is not None:
-            print("Entering recognition pipeline no language")
             result = recognition_pipeline(file_name, generate_kwargs={"language": client_configs[client_id]['language']})
         else:
-            print("Entering recognition pipeline has language")
             result = recognition_pipeline(file_name)
 
         transcription_time = time.time() - start_time_transcription
-        print("result is ", result)
 
         if DEBUG: print(f"Transcription Time: {transcription_time:.2f} seconds")
 
