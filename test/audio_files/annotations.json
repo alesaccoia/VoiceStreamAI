@@ -1,0 +1,12 @@
+{
+    "eng_speech.wav": {
+        "segments": [
+            {"start": 0.0, "end": 3.0, "transcription": "Good Morning everyone", "is_speech": true},
+            {"start": 3.2, "end": 8.5, "transcription": "today I want to talk about the future of Artificial Intelligence, or AI", "is_speech": true},
+            {"start": 8.7, "end": 13.0, "transcription": "and it's groundbreaking impact on our world", "is_speech": true},
+            {"start": 13.3, "end": 20.2, "transcription": "imagine a world were AI systems diagnose illnesses with greater accuracy than human doctors", "is_speech": true},
+            {"start": 20.2, "end": 31.5, "transcription": "where self-driving cars navigate busy city streets safely and where intelligent robots performs tasks too dangerous for humans", "is_speech": true},
+            {"start": 31.5, "end": 35.5, "transcription": "this is not science fiction", "is_speech": true}
+        ]
+    }
+}
