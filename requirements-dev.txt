@@ -1,0 +1,4 @@
+transformers
+pyannote.core
+pyannote.audio
+websockets
