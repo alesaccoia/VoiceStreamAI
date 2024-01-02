@@ -19,13 +19,13 @@ from pyannote.core import Segment
 from pyannote.audio import Model
 from pyannote.audio.pipelines import VoiceActivityDetection
 
-HOST = 'localhost'
+HOST = '0.0.0.0'
 PORT = 8765
 SAMPLING_RATE = 16000
 AUDIO_CHANNELS = 1
 SAMPLES_WIDTH = 2 # int16
 DEBUG = True
-VAD_AUTH_TOKEN = "FILL ME" # get your key here -> https://huggingface.co/pyannote/segmentation
+VAD_AUTH_TOKEN = os.environ.get("HF_TOKEN") # get your key here -> https://huggingface.co/pyannote/segmentation
 
 DEFAULT_CLIENT_CONFIG = {
     "language" : None, # multilingual
@@ -123,11 +123,15 @@ async def transcribe_and_send(client_id, websocket, new_audio_data):
         start_time_transcription = time.time()
         
         if client_configs[client_id]['language'] is not None:
+            print("Entering recognition pipeline no language")
             result = recognition_pipeline(file_name, generate_kwargs={"language": client_configs[client_id]['language']})
         else:
+            print("Entering recognition pipeline has language")
             result = recognition_pipeline(file_name)
 
         transcription_time = time.time() - start_time_transcription
+        print("result is ", result)
+
         if DEBUG: print(f"Transcription Time: {transcription_time:.2f} seconds")
 
         print(f"Client ID {client_id}: Transcribed : {result['text']}")

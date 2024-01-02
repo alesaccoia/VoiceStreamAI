@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ..
+      args:
+        HTTP_PROXY: ${HTTP_PROXY}
+        HTTPS_PROXY: ${HTTPS_PROXY}
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ~/VoiceStreamAI:/workspace:cached
+    ports:
+      - "8765:8765"
+    user: vscode
+    command: sleep infinity
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - capabilities: [gpu]

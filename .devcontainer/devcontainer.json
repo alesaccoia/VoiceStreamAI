@@ -1,0 +1,56 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/postgres
+{
+    "name": "VoiceStreamAI Demo",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "app",
+    "workspaceMount": "source=~/VoiceStreamAI,target=/workspace,type=bind,consistency=cached",
+    "workspaceFolder": "/workspace",
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "zsh", 
+                "terminal.integrated.profiles.linux": {
+                    "zsh": {
+                        "path": "/bin/zsh"
+                    }
+                }
+            },            
+            "extensions": [
+                "GitHub.copilot",
+                "GitHub.copilot-labs",
+                "GitHub.vscode-pull-request-github",
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-python.pylint",
+                "ms-python.isort",
+                "ms-python.black-formatter",
+                "matangover.mypy",
+                "ms-toolsai.jupyter",
+                "ms-toolsai.jupyter-keymap",
+                "ms-toolsai.vscode-jupyter-slideshow",
+                "eamodio.gitlens",
+                "github.vscode-github-actions"
+            ]
+        }
+    },
+    // Features to add to the dev container. More info: https://containers.dev/features.
+    // "features": {},
+
+    // Use 'forwardPorts' to make a list of ports inside the container available locally.
+    // This can be used to network with other containers or the host.
+    "forwardPorts": [8765],
+
+    // Run Args to use GPU
+    // "runArgs": ["--gpus", "all"],
+    // Use 'postCreateCommand' to run commands after the container is created.
+    "postCreateCommand": "./.devcontainer/postCreateCommand.sh"
+
+    // Configure tool-specific properties.
+    // "customizations": {},
+
+
+    // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+    // "remoteUser": "root",
+}
+

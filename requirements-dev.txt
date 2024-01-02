@@ -1,0 +1,6 @@
+ffmpeg
+pyannote.core
+pyannote.audio
+torchvision
+transformers
+websockets
