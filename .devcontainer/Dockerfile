@@ -31,5 +31,9 @@ RUN echo "source ~/venv/bin/activate" >> ~/.zshrc
 RUN echo "export PYTHONPATH=\$PYTHONPATH:/workspace" >> ~/.zshrc
 RUN /bin/zsh ~/.zshrc
 
+# Setup HF_ENDPOINT and PYANNOTE_CACHE
+ENV HF_ENDPOINT=https://hf-mirror.com
+ENV PYANNOTE_CACHE=/data0/cache/pyannote/
+
 ENV DEBIAN_FRONTEND=dialog
 
