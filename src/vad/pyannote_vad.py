@@ -1,4 +1,5 @@
 from os import remove
+import os
 
 from pyannote.core import Segment
 from pyannote.audio import Model
@@ -21,10 +22,15 @@ class PyannoteVAD(VADInterface):
             model_name (str): The model name for Pyannote.
             auth_token (str, optional): Authentication token for Hugging Face.
         """
+        
         model_name = kwargs.get('model_name', "pyannote/segmentation")
-        auth_token = kwargs.get('auth_token')
+
+        auth_token = os.environ.get('PYANNOTE_AUTH_TOKEN')
+        if not auth_token:
+            auth_token = kwargs.get('auth_token')
+        
         if auth_token is None:
-            raise ValueError("Missing required argument in --vad-args: 'auth_token'")
+            raise ValueError("Missing required env var in PYANNOTE_AUTH_TOKEN or argument in --vad-args: 'auth_token'")
         
         pyannote_args = kwargs.get('pyannote_args', {"onset": 0.5, "offset": 0.5, "min_duration_on": 0.3, "min_duration_off": 0.3})
         self.model = Model.from_pretrained(model_name, use_auth_token=auth_token)
