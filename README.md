@@ -5,9 +5,10 @@ VoiceStreamAI is a Python 3 -based server and JavaScript client solution that en
 ## Features
 
 - Real-time audio streaming through WebSocket.
-- Voice activity detection using Huggingface's VAD.
-- Speech transcription using OpenAI's Whisper model.
-- Customizable audio chunk processing.
+- Modular design for easy integration of different VAD and ASR technologies.
+- Factory and strategy pattern implementation for flexible component management.
+- Unit testing framework for robust development.
+- Customizable audio chunk processing strategies.
 - Support for multilingual transcription.
 
 ## Installation
@@ -40,12 +41,6 @@ The VoiceStreamAI server can be customized through command line arguments, allow
 - `--host`: Sets the host address for the WebSocket server (default: `localhost`).
 - `--port`: Sets the port on which the server listens (default: `8765`).
 
-To launch the server with customized settings, use the following command structure:
-
-```bash
-python3 main.py --vad-type <vad_type> --vad-args <vad_args_json> --asr-type <asr_type> --asr-args <asr_args_json> --host <host> --port <port>
-```
-
 For running the server with the standard configuration:
 
 1. Obtain the key to the Voice-Activity-Detection model at [https://huggingface.co/pyannote/segmentation](https://huggingface.co/pyannote/segmentation)
@@ -77,7 +72,7 @@ python3 -m src.main --help
 - **Python Server**: Manages WebSocket connections, processes audio streams, and handles voice activity detection and transcription.
 - **WebSockets**: Used for real-time communication between the server and client.
 - **Voice Activity Detection**: Detects voice activity in the audio stream to optimize processing.
-- **Speech-to-Text**: Utilizes OpenAI's Whisper model (openai/whisper-large-v3) for accurate transcription.
+- **Speech-to-Text**: Utilizes OpenAI's Whisper model (openai/whisper-large-v3) for accurate transcription
 
 ## Technical Overview
 

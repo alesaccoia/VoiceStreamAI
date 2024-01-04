@@ -6,20 +6,48 @@ import json
 import asyncio
 import websockets
 from pydub import AudioSegment
+from sentence_transformers import SentenceTransformer, util
+
 from src.server import Server
 from src.vad.pyannote_vad import PyannoteVAD
 from src.asr.whisper_asr import WhisperASR
 
 class TestServer(unittest.TestCase):
+    """
+    Test suite for testing the Server class responsible for real-time audio transcription.
+
+    This test suite contains tests that verify the functionality of the Server class, particularly
+    focusing on its ability to handle audio data, process it through VAD (Voice Activity Detection)
+    and ASR (Automatic Speech Recognition) pipelines, and return accurate transcriptions.
+
+    Methods:
+        setUp: Prepares the test environment before each test method is executed.
+        receive_transcriptions: Asynchronously receives transcriptions from the server and stores them.
+        mock_client: Simulates a client sending audio data to the server for processing.
+        test_server_response: Tests the server's response accuracy by comparing received and expected transcriptions.
+        load_annotations: Loads transcription annotations for comparison with server responses.
+    """
     def setUp(self):
-        # Initialize VAD and ASR pipelines (add necessary arguments)
+        """
+        Set up the test environment.
+
+        Initializes the VAD and ASR pipelines, the server, the path to the annotations,
+        a list to store received transcriptions, and the sentence similarity model.
+        """
         self.vad_pipeline = PyannoteVAD()
         self.asr_pipeline = WhisperASR()
         self.server = Server(self.vad_pipeline, self.asr_pipeline, host='localhost', port=8766)
         self.annotations_path = os.path.join(os.path.dirname(__file__), "../audio_files/annotations.json")
         self.received_transcriptions = []
+        self.similarity_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
 
     async def receive_transcriptions(self, websocket):
+        """
+        Asynchronously receive and store transcriptions from the server.
+
+        Args:
+            websocket (Websocket): The websocket connection to receive transcriptions from.
+        """
         try:
             while True:
                 transcription = await websocket.recv()
@@ -29,6 +57,14 @@ class TestServer(unittest.TestCase):
             pass  # Expected when server closes the connection
 
     async def mock_client(self, audio_file):
+        """
+        Simulate a client sending audio data to the server.
+
+        Streams audio data in chunks to the server and then streams silence to signify the end of the audio.
+
+        Args:
+            audio_file (str): Path to the audio file to be sent to the server.
+        """
         uri = "ws://localhost:8766"
         async with websockets.connect(uri) as websocket:
             # Start receiving transcriptions in a separate task
@@ -52,6 +88,12 @@ class TestServer(unittest.TestCase):
             receive_task.cancel()
 
     def test_server_response(self):
+        """
+        Test the server's response accuracy.
+
+        Compares the received transcriptions from the server with expected transcriptions from annotations.
+        Validates the similarity of these transcriptions using a sentence transformer model.
+        """
         # Start the server
         start_server = self.server.start()
         asyncio.get_event_loop().run_until_complete(start_server)
@@ -64,11 +106,30 @@ class TestServer(unittest.TestCase):
             asyncio.get_event_loop().run_until_complete(self.mock_client(audio_file_path))
 
             # Compare received transcriptions with expected transcriptions
-            expected_transcriptions = [seg["transcription"] for seg in data['segments']]
-            for transcription in self.received_transcriptions:
-                self.assertTrue(any(expected in transcription for expected in expected_transcriptions))
+            expected_transcriptions = ' '.join([seg["transcription"] for seg in data['segments']])
+            received_transcriptions = ' '.join(self.received_transcriptions)
+
+            embedding_1 = self.similarity_model.encode(expected_transcriptions.lower().strip(), convert_to_tensor=True)
+            embedding_2 = self.similarity_model.encode(received_transcriptions.lower().strip(), convert_to_tensor=True)
+            similarity = util.pytorch_cos_sim(embedding_1, embedding_2).item()
+
+            # Print summary before assertion
+            print(f"Test file: {audio_file_name}")
+            print(f"Expected Transcriptions: {expected_transcriptions}")
+            print(f"Received Transcriptions: {received_transcriptions}")
+            print(f"Similarity Score: {similarity}")
+
+            self.received_transcriptions = []
+
+            self.assertGreaterEqual(similarity, 0.7)
 
     def load_annotations(self):
+        """
+        Load annotations from a JSON file for transcription comparison.
+
+        Returns:
+            dict: A dictionary containing expected transcriptions for test audio files.
+        """
         with open(self.annotations_path, 'r') as file:
             return json.load(file)
 

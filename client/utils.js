@@ -91,17 +91,28 @@ function stopRecording() {
 }
 
 function sendAudioConfig() {
+    let selectedStrategy = document.getElementById('bufferingStrategySelect').value;
+    let processingArgs = {};
+
+    if (selectedStrategy === 'silence_at_end_of_chunk') {
+        processingArgs = {
+            chunk_length_seconds: parseFloat(document.getElementById('chunk_length_seconds').value),
+            chunk_offset_seconds: parseFloat(document.getElementById('chunk_offset_seconds').value)
+        };
+    }
+
     const audioConfig = {
         type: 'config',
         data: {
             sampleRate: context.sampleRate,
             bufferSize: bufferSize,
             channels: 1, // Assuming mono channel
-            chunk_length_seconds: chunk_length_seconds, 
-            chunk_offset_seconds: chunk_offset_seconds,
-            language: language
+            language: language,
+            processing_strategy: selectedStrategy, 
+            processing_args: processingArgs
         }
     };
+
     websocket.send(JSON.stringify(audioConfig));
 }
 
@@ -152,3 +163,15 @@ function convertFloat32ToInt16(buffer) {
 
 // Initialize WebSocket on page load
 //  window.onload = initWebSocket;
+
+function toggleBufferingStrategyPanel() {
+    var selectedStrategy = document.getElementById('bufferingStrategySelect').value;
+    if (selectedStrategy === 'silence_at_end_of_chunk') {
+        var panel = document.getElementById('silence_at_end_of_chunk_options_panel');
+        panel.classList.remove('hidden');
+    } else {
+        var panel = document.getElementById('silence_at_end_of_chunk_options_panel');
+        panel.classList.add('hidden');
+    }
+}
+

@@ -46,33 +46,9 @@ class Server:
             else:
                 print(f"Unexpected message type from {client.client_id}")
 
-            chunk_length_in_bytes = int(client.config.get('chunk_length_seconds', 5)) * self.sampling_rate * self.samples_width
+            # this is synchronous, any async operation is in BufferingStrategy
+            client.process_audio(websocket, self.vad_pipeline, self.asr_pipeline)
 
-            if client.config.get('processing_strategy') == 1:
-                if len(client.buffer) > chunk_length_in_bytes:
-                    # Schedule the processing in a separate task
-                    client.scratch_buffer += client.buffer
-                    client.buffer.clear()
-                    asyncio.create_task(self.process_audio_strategy_1(client, websocket))
-
-    async def process_audio_strategy_1(self, client, websocket):
-        # This is the heavy processing part
-        vad_results = await self.vad_pipeline.detect_activity(client)
-
-        if len(vad_results) == 0:
-            client.scratch_buffer.clear()
-            client.buffer.clear()
-            return
-
-        last_segment_should_end_before = ((len(client.scratch_buffer) / (self.sampling_rate * self.samples_width)) - int(client.config.get('chunk_offset_seconds')))
-        if vad_results[-1]['end'] < last_segment_should_end_before:
-            transcription = await self.asr_pipeline.transcribe(client)
-            if transcription != '':
-                await websocket.send(transcription)
-
-            client.scratch_buffer.clear()
-            client.increment_file_counter()
-        
 
     async def handle_websocket(self, websocket, path):
         client_id = str(uuid.uuid4())
