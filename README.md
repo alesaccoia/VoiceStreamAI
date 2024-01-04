@@ -13,6 +13,8 @@ VoiceStreamAI is a Python 3 -based server and JavaScript client solution that en
 
 ## Demo Video
 
+![Client Demo](/img/client.png "Client Demo")
+
 Check out the demo video [here](img/voicestreamai_test.mov).
 
 ## Running with Docker
@@ -111,7 +113,6 @@ python3 -m src.main --help
 5. Click 'Connect' to establish a WebSocket connection.
 6. Use 'Start Streaming' and 'Stop Streaming' to control audio capture.
 
-![Client Demo](/img/client.png "Client Demo")
 
 ## Technology Overview
 
