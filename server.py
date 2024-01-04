@@ -12,6 +12,7 @@ import json
 import wave
 import os
 import time
+import torch
 import logging
 
 from transformers import pipeline
@@ -37,14 +38,16 @@ DEFAULT_CLIENT_CONFIG = {
 
 audio_dir = "audio_files"
 os.makedirs(audio_dir, exist_ok=True)
+device = torch.device("cuda", 1)
 
 ## ---------- INSTANTIATES VAD --------
 model = Model.from_pretrained("pyannote/segmentation", use_auth_token=VAD_AUTH_TOKEN)
-vad_pipeline = VoiceActivityDetection(segmentation=model)
+vad_pipeline = VoiceActivityDetection(segmentation=model, device=device)
 vad_pipeline.instantiate({"onset": 0.5, "offset": 0.5, "min_duration_on": 0.3, "min_duration_off": 0.3})
 
 ## ---------- INSTANTIATES SPEECH --------
-recognition_pipeline = pipeline("automatic-speech-recognition", model="openai/whisper-large-v3")
+#recognition_pipeline = pipeline("automatic-speech-recognition", model="openai/whisper-large-v3")
+recognition_pipeline = pipeline("automatic-speech-recognition", model="openai/whisper-medium.en", device=device)
 
 
 connected_clients = {}
@@ -122,10 +125,10 @@ async def transcribe_and_send(client_id, websocket, new_audio_data):
     if last_segment.end < (len(audio_data) / (SAMPLES_WIDTH * SAMPLING_RATE)) - int(client_configs[client_id]['chunk_offset_seconds']):
         start_time_transcription = time.time()
         
-        if client_configs[client_id]['language'] is not None:
-            result = recognition_pipeline(file_name, generate_kwargs={"language": client_configs[client_id]['language']})
-        else:
-            result = recognition_pipeline(file_name)
+        # if client_configs[client_id]['language'] is not None:
+        #     result = recognition_pipeline(file_name, generate_kwargs={"language": client_configs[client_id]['language']})
+        # else:
+        result = recognition_pipeline(file_name)
 
         transcription_time = time.time() - start_time_transcription
 
@@ -144,6 +147,7 @@ async def transcribe_and_send(client_id, websocket, new_audio_data):
     os.remove(file_name) # in the end always delete the created file
 
 async def receive_audio(websocket, path):
+    print(f"websocket type: {websocket}")
     client_id = str(uuid.uuid4())
     connected_clients[client_id] = websocket
     client_buffers[client_id] = bytearray()
@@ -165,8 +169,9 @@ async def receive_audio(websocket, path):
                 print(f"Unexpected message type from {client_id}")
 
             # Process audio when enough data is received
-            if len(client_buffers[client_id]) > int(client_configs[client_id]['chunk_length_seconds']) * SAMPLING_RATE * SAMPLES_WIDTH:
-                if DEBUG: print(f"Client ID {client_id}: receive_audio calling transcribe_and_send with length: {len(client_buffers[client_id])}")
+            config_buf_size = int(client_configs[client_id]['chunk_length_seconds']) * SAMPLING_RATE * SAMPLES_WIDTH
+            if len(client_buffers[client_id]) > config_buf_size:
+                if DEBUG: print(f"Client ID {client_id}: receive_audio calling transcribe_and_send with length: {len(client_buffers[client_id])}, max length: {config_buf_size}")
                 await transcribe_and_send(client_id, websocket, client_buffers[client_id])
                 client_buffers[client_id].clear()
 
