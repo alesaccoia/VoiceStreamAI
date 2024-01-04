@@ -11,6 +11,10 @@ VoiceStreamAI is a Python 3 -based server and JavaScript client solution that en
 - Customizable audio chunk processing strategies.
 - Support for multilingual transcription.
 
+## Demo Video
+
+Check out the demo video [here](img/voicestreamai_test.mov).
+
 ## Running with Docker
 
 This will not guide you in detail on how to use CUDA in docker, see for example [here](https://medium.com/@kevinsjy997/configure-docker-to-use-local-gpu-for-training-ml-models-70980168ec9b). 
