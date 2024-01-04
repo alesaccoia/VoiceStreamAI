@@ -1,3 +1,4 @@
+websockets
 speechbrain
 pyannote-audio
 asyncio
