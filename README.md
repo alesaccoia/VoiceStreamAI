@@ -11,7 +11,46 @@ VoiceStreamAI is a Python 3 -based server and JavaScript client solution that en
 - Customizable audio chunk processing strategies.
 - Support for multilingual transcription.
 
-## Installation
+## Running with Docker
+
+This will not guide you in detail on how to use CUDA in docker, see for example [here](https://medium.com/@kevinsjy997/configure-docker-to-use-local-gpu-for-training-ml-models-70980168ec9b). 
+
+Still, these are the commands for Linux:
+
+```bash
+distribution=$(. /etc/os-release;echo $ID$VERSION_ID) \
+&& curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+&& curl -s -L https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.list | \
+sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+sudo nvidia-ctk runtime configure --runtime=docker
+
+sudo systemctl restart docker
+```
+
+You can build the image with:
+
+```bash
+sudo docker build -t voicestreamai .
+```
+
+After getting your VAD token (see next sections) run:
+
+```bash
+
+sudo docker volume create huggingface_models
+
+sudo docker run --gpus all -p 8765:8765 -v huggingface_models:/root/.cache/huggingface  -e PYANNOTE_AUTH_TOKEN='VAD_TOKEN_HERE' voicestreamai
+```
+
+The "volume" stuff will allow you not to re-download the huggingface models each time you re-run the container. If you don't need this, just use:
+
+```bash
+sudo docker run --gpus all -p 8765:8765 -e PYANNOTE_AUTH_TOKEN='VAD_TOKEN_HERE' voicestreamai
+```
+
+## Normal, Manual Installation
 
 To set up the VoiceStreamAI server, you need Python 3.8 or later and the following packages:
 
@@ -19,11 +58,13 @@ To set up the VoiceStreamAI server, you need Python 3.8 or later and the followi
 2. `pyannote.core`
 3. `pyannote.audio`
 4. `websockets`
+5. `asyncio`
+6. `sentence-transformers`
 
 Install these packages using pip:
 
 ```bash
-pip install transformers pyannote.core pyannote.audio websockets
+pip install -r requirements
 ```
 
 For the client-side, you need a modern web browser with JavaScript support.
