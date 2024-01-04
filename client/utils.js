@@ -47,14 +47,46 @@ function initWebSocket() {
 
 function updateTranscription(transcript_data) {
     const transcriptionDiv = document.getElementById('transcription');
-    transcriptionDiv.textContent += transcript_data['text'] + '\n';
-
     const languageDiv = document.getElementById('detected_language');
-    languageDiv.textContent = transcript_data['language'] + '(' + transcript_data['language_probability'] + ')';    
 
-    const processing_time = document.getElementById('processing_time');
-    processing_time.textContent = transcript_data['processing_time']  
+    if (transcript_data['words'] && transcript_data['words'].length > 0) {
+        // Append words with color based on their probability
+        transcript_data['words'].forEach(wordData => {
+            const span = document.createElement('span');
+            const probability = wordData['probability'];
+            span.textContent = wordData['word'] + ' ';
+
+            // Set the color based on the probability
+            if (probability > 0.9) {
+                span.style.color = 'green';
+            } else if (probability > 0.6) {
+                span.style.color = 'orange';
+            } else {
+                span.style.color = 'red';
+            }
+
+            transcriptionDiv.appendChild(span);
+        });
+
+        // Add a new line at the end
+        transcriptionDiv.appendChild(document.createElement('br'));
+    } else {
+        // Fallback to plain text
+        transcriptionDiv.textContent += transcript_data['text'] + '\n';
+    }
+
+    // Update the language information
+    if (transcript_data['language'] && transcript_data['language_probability']) {
+        languageDiv.textContent = transcript_data['language'] + ' (' + transcript_data['language_probability'].toFixed(2) + ')';
+    }
+
+    // Update the processing time, if available
+    const processingTimeDiv = document.getElementById('processing_time');
+    if (transcript_data['processing_time']) {
+        processingTimeDiv.textContent = 'Processing time: ' + transcript_data['processing_time'].toFixed(2) + ' seconds';
+    }
 }
+
 
 function startRecording() {
     if (isRecording) return;
