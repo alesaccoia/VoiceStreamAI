@@ -9,8 +9,8 @@ from pydub import AudioSegment
 from sentence_transformers import SentenceTransformer, util
 
 from src.server import Server
-from src.vad.pyannote_vad import PyannoteVAD
-from src.asr.whisper_asr import WhisperASR
+from src.vad.vad_factory import VADFactory
+from src.asr.asr_factory import ASRFactory
 
 class TestServer(unittest.TestCase):
     """
@@ -27,6 +27,12 @@ class TestServer(unittest.TestCase):
         test_server_response: Tests the server's response accuracy by comparing received and expected transcriptions.
         load_annotations: Loads transcription annotations for comparison with server responses.
     """
+    @classmethod
+    def setUpClass(cls):
+        # Use an environment variable to get the ASR model type
+        cls.asr_type = os.getenv('ASR_TYPE', 'faster_whisper')
+        cls.vad_type = os.getenv('VAD_TYPE', 'pyannote')
+
     def setUp(self):
         """
         Set up the test environment.
@@ -34,9 +40,9 @@ class TestServer(unittest.TestCase):
         Initializes the VAD and ASR pipelines, the server, the path to the annotations,
         a list to store received transcriptions, and the sentence similarity model.
         """
-        self.vad_pipeline = PyannoteVAD()
-        self.asr_pipeline = WhisperASR()
-        self.server = Server(self.vad_pipeline, self.asr_pipeline, host='localhost', port=8766)
+        self.vad_pipeline = VADFactory.create_vad_pipeline(self.vad_type)
+        self.asr_pipeline = ASRFactory.create_asr_pipeline(self.asr_type)
+        self.server = Server(self.vad_pipeline, self.asr_pipeline, host='127.0.0.1', port=8767)
         self.annotations_path = os.path.join(os.path.dirname(__file__), "../audio_files/annotations.json")
         self.received_transcriptions = []
         self.similarity_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
@@ -50,9 +56,10 @@ class TestServer(unittest.TestCase):
         """
         try:
             while True:
-                transcription = await websocket.recv()
-                self.received_transcriptions.append(transcription)
-                print(f"Received transcription: {transcription}")
+                transcription_str = await websocket.recv()
+                transcription = json.loads(transcription_str) 
+                self.received_transcriptions.append(transcription['text'])
+                print(f"Received transcription: {transcription['text']}, processing time: {transcription['processing_time']}")
         except websockets.exceptions.ConnectionClosed:
             pass  # Expected when server closes the connection
 
@@ -65,7 +72,7 @@ class TestServer(unittest.TestCase):
         Args:
             audio_file (str): Path to the audio file to be sent to the server.
         """
-        uri = "ws://localhost:8766"
+        uri = "ws://127.0.0.1:8767"
         async with websockets.connect(uri) as websocket:
             # Start receiving transcriptions in a separate task
             receive_task = asyncio.create_task(self.receive_transcriptions(websocket))

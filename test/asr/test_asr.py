@@ -4,12 +4,18 @@ import json
 import asyncio
 from sentence_transformers import SentenceTransformer, util
 from pydub import AudioSegment
-from src.asr.whisper_asr import WhisperASR
+import argparse
+from src.asr.asr_factory import ASRFactory
 from src.client import Client
 
 class TestWhisperASR(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Use an environment variable to get the ASR model type
+        cls.asr_type = os.getenv('ASR_TYPE', 'whisper')
+
     def setUp(self):
-        self.asr = WhisperASR()
+        self.asr = ASRFactory.create_asr_pipeline(self.asr_type)
         self.annotations_path = os.path.join(os.path.dirname(__file__), "../audio_files/annotations.json")
         self.client = Client("test_client", 16000, 2)  # Example client
         self.similarity_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
@@ -35,7 +41,7 @@ class TestWhisperASR(unittest.TestCase):
                 self.client.scratch_buffer = bytearray(audio_segment.raw_data)
                 self.client.config['language'] = None
 
-                transcription = asyncio.run(self.asr.transcribe(self.client))
+                transcription = asyncio.run(self.asr.transcribe(self.client))["text"]
 
                 embedding_1 = self.similarity_model.encode(transcription.lower().strip(), convert_to_tensor=True)
                 embedding_2 = self.similarity_model.encode(segment["transcription"].lower().strip(), convert_to_tensor=True)

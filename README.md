@@ -1,6 +1,6 @@
 # VoiceStreamAI: near-realtime voice transcription through WebSocket with a self-hosted Whisper model
 
-VoiceStreamAI is a Python 3 -based server and JavaScript client solution that enables near-realtime audio streaming and transcription using WebSocket. The system employs Huggingface's Voice Activity Detection (VAD) and OpenAI's Whisper model for accurate speech recognition and processing.
+VoiceStreamAI is a Python 3 -based server and JavaScript client solution that enables near-realtime audio streaming and transcription using WebSocket. The system employs Huggingface's Voice Activity Detection (VAD) and OpenAI's Whisper model ([faster-whisper](https://github.com/SYSTRAN/faster-whisper) being the default) for accurate speech recognition and processing.
 
 ## Features
 
@@ -60,6 +60,7 @@ To set up the VoiceStreamAI server, you need Python 3.8 or later and the followi
 4. `websockets`
 5. `asyncio`
 6. `sentence-transformers`
+7. `faster-whisper`
 
 Install these packages using pip:
 
@@ -77,9 +78,9 @@ The VoiceStreamAI server can be customized through command line arguments, allow
 
 - `--vad-type`: Specifies the type of Voice Activity Detection (VAD) pipeline to use (default: `pyannote`) .
 - `--vad-args`: A JSON string containing additional arguments for the VAD pipeline. (required for `pyannote`: `'{"auth_token": "VAD_AUTH_HERE"}'`)
-- `--asr-type`: Specifies the type of Automatic Speech Recognition (ASR) pipeline to use (default: `whisper`).
+- `--asr-type`: Specifies the type of Automatic Speech Recognition (ASR) pipeline to use (default: `faster_whisper`).
 - `--asr-args`: A JSON string containing additional arguments for the ASR pipeline (one can for example change `model_name` for whisper)
-- `--host`: Sets the host address for the WebSocket server (default: `localhost`).
+- `--host`: Sets the host address for the WebSocket server (default: `127.0.0.1`).
 - `--port`: Sets the port on which the server listens (default: `8765`).
 
 For running the server with the standard configuration:
@@ -113,7 +114,7 @@ python3 -m src.main --help
 - **Python Server**: Manages WebSocket connections, processes audio streams, and handles voice activity detection and transcription.
 - **WebSockets**: Used for real-time communication between the server and client.
 - **Voice Activity Detection**: Detects voice activity in the audio stream to optimize processing.
-- **Speech-to-Text**: Utilizes OpenAI's Whisper model (openai/whisper-large-v3) for accurate transcription
+- **Speech-to-Text**: Utilizes [Faster Whisper](https://github.com/SYSTRAN/faster-whisper) or OpenAI's Whisper model (openai/whisper-large-v3) for accurate transcription. Faster Whisper is the default as it is much faster
 
 ## Technical Overview
 
@@ -133,7 +134,7 @@ Voice Activity Detection (VAD) in VoiceStreamAI enables the system to distinguis
 
 VoiceStreamAI uses a Huggingface VAD model to ensure reliable detection of speech in diverse audio conditions.
 
-### Processing Strategy 1
+### Processing Strategy "SilenceAtEndOfChunk"
 
 The buffering strategy is designed to balance between near-real-time processing and ensuring complete and accurate capture of speech segments. Here’s how buffering is managed:
 
@@ -174,6 +175,18 @@ function sendAudioConfig() {
     websocket.send(JSON.stringify(audioConfig));
 }
 ```
+
+## Testing
+
+When implementing a new ASR, Vad or Buffering Strategy you can test it with:
+
+```bash
+
+ASR_TYPE=faster_whisper ASR_TYPE=faster_whisper  python3 -m unittest test.server.test_server
+
+```
+
+Please make sure that the end variables are in place for example for the VAD auth token. Several other tests are in place, for example for the standalone ASR.
 
 ## Areas for Improvement
 

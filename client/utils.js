@@ -40,13 +40,20 @@ function initWebSocket() {
     };
     websocket.onmessage = event => {
         console.log("Message from server:", event.data);
-        updateTranscription(event.data);
+        const transcript_data = JSON.parse(event.data);
+        updateTranscription(transcript_data);
     };
 }
 
-function updateTranscription(transcript) {
+function updateTranscription(transcript_data) {
     const transcriptionDiv = document.getElementById('transcription');
-    transcriptionDiv.textContent += transcript + '\n';
+    transcriptionDiv.textContent += transcript_data['text'] + '\n';
+
+    const languageDiv = document.getElementById('detected_language');
+    languageDiv.textContent = transcript_data['language'] + '(' + transcript_data['language_probability'] + ')';    
+
+    const processing_time = document.getElementById('processing_time');
+    processing_time.textContent = transcript_data['processing_time']  
 }
 
 function startRecording() {

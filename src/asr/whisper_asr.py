@@ -17,4 +17,11 @@ class WhisperASR(ASRInterface):
             to_return = self.asr_pipeline(file_path)['text']
 
         os.remove(file_path)
+
+        to_return = {
+            "language": "UNSUPPORTED_BY_HUGGINGFACE_WHISPER",
+            "language_probability": None,
+            "text": to_return.strip(),
+            "words": "UNSUPPORTED_BY_HUGGINGFACE_WHISPER"
+        }
         return to_return
