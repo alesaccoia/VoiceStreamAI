@@ -214,8 +214,3 @@ Currently, VoiceStreamAI processes audio by saving chunks to files and then runn
 - Alessandro Saccoia - [alessandro.saccoia@gmail.com](mailto:alessandro.saccoia@gmail.com)
 
 This project is open for contributions. Feel free to fork the repository and submit pull requests.
-
-## License
-
-VoiceStreamAI is a proof of concept, do whatever you want with it.
-
