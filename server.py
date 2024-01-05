@@ -15,6 +15,7 @@ import time
 import torch
 import logging
 import time
+import random
 from transformers import pipeline
 from pyannote.core import Segment
 from pyannote.audio import Model
@@ -24,7 +25,7 @@ logger = configure_logging()
 
 
 HOST = '0.0.0.0'
-PORT = 9876
+PORT = os.environ.get("SERVER_PORT", random.randint(10000, 11000))
 SAMPLING_RATE = 16000
 AUDIO_CHANNELS = 1
 SAMPLES_WIDTH = 2 # int16
