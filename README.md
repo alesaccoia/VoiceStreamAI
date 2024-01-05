@@ -1,4 +1,6 @@
-# VoiceStreamAI: near-realtime voice transcription through WebSocket with a self-hosted Whisper model
+# VoiceStreamAI
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 VoiceStreamAI is a Python 3 -based server and JavaScript client solution that enables near-realtime audio streaming and transcription using WebSocket. The system employs Huggingface's Voice Activity Detection (VAD) and OpenAI's Whisper model ([faster-whisper](https://github.com/SYSTRAN/faster-whisper) being the default) for accurate speech recognition and processing.
 
@@ -13,9 +15,12 @@ VoiceStreamAI is a Python 3 -based server and JavaScript client solution that en
 
 ## Demo Video
 
-![Client Demo](/img/client.png "Client Demo")
 
-Check out the demo video [here](img/voicestreamai_test.mov).
+https://github.com/alesaccoia/VoiceStreamAI/assets/1385023/9b5f2602-fe0b-4c9d-af9e-4662e42e23df
+
+## Demo Client
+
+![Client Demo](/img/client.png "Client Demo")
 
 ## Running with Docker
 
