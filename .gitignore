@@ -2,3 +2,6 @@
 .DS_STORE
 SHOPPAL_README.md
 audio_files/*
+__pycache__/
+*.ipynb
+.ipynb_checkpoints

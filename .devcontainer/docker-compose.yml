@@ -12,7 +12,7 @@ services:
       - ~/VoiceStreamAI:/workspace:cached
       - /data0:/data0:cached
     ports:
-      - "8765:8765"
+      - "9876:9876"
     user: vscode
     command: sleep infinity
     deploy:
