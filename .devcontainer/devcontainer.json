@@ -39,7 +39,7 @@
 
     // Use 'forwardPorts' to make a list of ports inside the container available locally.
     // This can be used to network with other containers or the host.
-    "forwardPorts": [9876],
+    // "forwardPorts": [8080],
 
     // Run Args to use GPU
     // "runArgs": ["--gpus", "all"],

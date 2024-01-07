@@ -5,18 +5,19 @@ services:
     build:
       context: ..
       args:
-        HTTP_PROXY: http://10.232.14.15:8118
-        HTTPS_PROXY: http://10.232.14.15:8118
+        http_proxy: ${http_proxy}
+        https_proxy: ${https_proxy}
       dockerfile: .devcontainer/Dockerfile
     volumes:
       - ~/VoiceStreamAI:/workspace:cached
       - /data0:/data0:cached
-    # ports:
-      # - "9876:9876"
     user: vscode
     command: sleep infinity
-    deploy:
+    deploy:      
       resources:
         reservations:
           devices:
           - capabilities: [gpu]
+    environment:
+      - http_proxy=${http_proxy}
+      - https_proxy=${https_proxy}
