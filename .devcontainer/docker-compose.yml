@@ -11,8 +11,8 @@ services:
     volumes:
       - ~/VoiceStreamAI:/workspace:cached
       - /data0:/data0:cached
-    ports:
-      - "9876:9876"
+    # ports:
+      # - "9876:9876"
     user: vscode
     command: sleep infinity
     deploy:

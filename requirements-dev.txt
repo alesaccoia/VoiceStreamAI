@@ -4,3 +4,6 @@ pyannote.audio
 torchvision
 transformers
 websockets
+jupyter
+datasets
+openai
