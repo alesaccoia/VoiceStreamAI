@@ -3,11 +3,11 @@ version: '3.8'
 services:
   app:
     build:
-      context: ..
+      context: .
       args:
         http_proxy: ${http_proxy}
         https_proxy: ${https_proxy}
-      dockerfile: .devcontainer/Dockerfile
+      dockerfile: Dockerfile
     volumes:
       - ~/VoiceStreamAI:/workspace:cached
       - /data0:/data0:cached
