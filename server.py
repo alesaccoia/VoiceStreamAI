@@ -34,8 +34,8 @@ VAD_AUTH_TOKEN = os.environ.get(
 
 DEFAULT_CLIENT_CONFIG = {
     "language": None,  # multilingual
-    "chunk_length_seconds": 2,
-    "chunk_offset_seconds": 0.5,
+    "chunk_length_seconds": 5,
+    "chunk_offset_seconds": 1,
 }
 
 
@@ -51,7 +51,7 @@ vad_pipeline.instantiate(
 ## ---------- INSTANTIATES SPEECH --------
 # recognition_pipeline = pipeline("automatic-speech-recognition", model="openai/whisper-large-v3")
 recognition_pipeline = pipeline(
-    "automatic-speech-recognition", model="openai/whisper-medium.en", device=device
+    "automatic-speech-recognition", model="openai/whisper-large-v2", device=device
 )
 
 
@@ -104,29 +104,30 @@ async def transcribe_and_send(client_id, websocket):
         cut_point = int(end * SAMPLING_RATE) * SAMPLES_WIDTH
         logger.info(f"buffer size: {len(cur_data)}, cut_point: {cut_point}")
         cur_numpy = np.frombuffer(cur_data[:cut_point], dtype=np.int16)
-        asr_result = recognition_pipeline(cur_numpy)
+        asr_result = recognition_pipeline({"sampling_rate":16000, "raw":cur_numpy})
         client_temp_buffers[client_id] = cur_data[cut_point:]
         if asr_result["text"]:
             file_count += 1
-            question = asr_result['text']
+            question = asr_result['text'] + f"...|{time.time()-recv_time[client_id]:.3f}s|"
+            await websocket.send(question)
             file_name = os.path.join('audio_files', f"{question}_{file_count}.wav")
             with wave.open(file_name, 'wb') as wav_file:
                 wav_file.setnchannels(AUDIO_CHANNELS)
                 wav_file.setsampwidth(SAMPLES_WIDTH)
                 wav_file.setframerate(SAMPLING_RATE)
                 wav_file.writeframes(cur_data[:cut_point])
-            answer = chat(question)
-            await websocket.send(f"Q: {question}  A: {answer}")
+            answer = chat(asr_result['text']) + f"...|{time.time()-recv_time[client_id]:.3f}s|"
+            await websocket.send(answer)
         return 
     
 
 
 async def receive_audio(websocket, path):
+    global recv_time
     logger.info(f"websocket type: {websocket}")
     client_id = str(uuid.uuid4())
     connected_clients[client_id] = websocket
     client_buffers[client_id] = bytearray()
-    recv_time[client_id] = None  # recv time list
     client_configs[client_id] = DEFAULT_CLIENT_CONFIG
 
     logger.info(f"Client {client_id} connected")
@@ -159,7 +160,7 @@ async def receive_audio(websocket, path):
                     client_id, websocket
                 )
                 client_buffers[client_id].clear()
-                recv_time[client_id] = None
+                
 
     except websockets.ConnectionClosed as e:
         logger.info(f"Connection with {client_id} closed: {e}")
