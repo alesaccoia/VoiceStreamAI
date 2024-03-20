@@ -8,7 +8,10 @@ WORKDIR /usr/src/app
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install any needed packages
-RUN apt-get update && apt-get install -y python3-pip libsndfile1 ffmpeg wget dpkg
+RUN apt-get update && \
+  apt-get install -y python3-pip libsndfile1 ffmpeg && \
+  apt-get clean && \
+  rm -rf /var/lib/apt/lists/*
 
 # Copy the requirements.txt file
 COPY requirements.txt ./
