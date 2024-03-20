@@ -1,10 +1,9 @@
-import websockets
+from aiohttp import web
 import uuid
 import json
-import asyncio
 
-from src.audio_utils import save_audio_to_file
 from src.client import Client
+
 
 class Server:
     """
@@ -23,7 +22,17 @@ class Server:
         samples_width (int): The width of each audio sample in bits.
         connected_clients (dict): A dictionary mapping client IDs to Client objects.
     """
-    def __init__(self, vad_pipeline, asr_pipeline, host='localhost', port=8765, sampling_rate=16000, samples_width=2):
+
+    def __init__(
+        self,
+        vad_pipeline,
+        asr_pipeline,
+        host="localhost",
+        port=80,
+        sampling_rate=16000,
+        samples_width=2,
+        static_files_path="./static",
+    ):
         self.vad_pipeline = vad_pipeline
         self.asr_pipeline = asr_pipeline
         self.host = host
@@ -31,39 +40,57 @@ class Server:
         self.sampling_rate = sampling_rate
         self.samples_width = samples_width
         self.connected_clients = {}
+        self.static_files_path = static_files_path
+        self.app = web.Application()
+        self.setup_routes()
 
-    async def handle_audio(self, client, websocket):
-        while True:
-            message = await websocket.recv()
+    def setup_routes(self):
+        self.app.router.add_get("/ws", self.websocket_handler)
+        self.app.router.add_get("/", self.index_handler)
+        self.app.router.add_static(
+            "/static/", path=self.static_files_path, name="static"
+        )
 
-            if isinstance(message, bytes):
-                client.append_audio_data(message)
-            elif isinstance(message, str):
-                config = json.loads(message)
-                if config.get('type') == 'config':
-                    client.update_config(config['data'])
-                    continue
-            else:
-                print(f"Unexpected message type from {client.client_id}")
+    async def index_handler(self, request):
+        return web.FileResponse(path=f"{self.static_files_path}/index.html")
 
-            # this is synchronous, any async operation is in BufferingStrategy
-            client.process_audio(websocket, self.vad_pipeline, self.asr_pipeline)
+    def setup_routes(self):
+        self.app.router.add_get("/ws", self.websocket_handler)
+        self.app.router.add_get("/", self.serve_index)
+        self.app.router.add_static("/", path=self.static_files_path, name="static")
 
+    async def serve_index(self, request):
+        return web.FileResponse(path=f"{self.static_files_path}/index.html")
 
-    async def handle_websocket(self, websocket, path):
+    async def websocket_handler(self, request):
+        ws = web.WebSocketResponse()
+        await ws.prepare(request)
+
         client_id = str(uuid.uuid4())
         client = Client(client_id, self.sampling_rate, self.samples_width)
         self.connected_clients[client_id] = client
 
-        print(f"Client {client_id} connected")
+        print(f"Client {client_id} connected.")
+        async for msg in ws:
+            if msg.type == web.WSMsgType.TEXT:
+                message_text = msg.data
+                if message_text == "close":
+                    await ws.close()
+                else:
+                    # Handle textual WebSocket messages
+                    config = json.loads(message_text)
+                    if config.get("type") == "config":
+                        client.update_config(config["data"])
+            elif msg.type == web.WSMsgType.BINARY:
+                # Handle binary WebSocket messages
+                client.append_audio_data(msg.data)
+                client.process_audio(ws, self.vad_pipeline, self.asr_pipeline)
+            elif msg.type == web.WSMsgType.ERROR:
+                print(f"WebSocket connection closed with exception {ws.exception()}")
 
-        try:
-            await self.handle_audio(client, websocket)
-        except websockets.ConnectionClosed as e:
-            print(f"Connection with {client_id} closed: {e}")
-        finally:
-            del self.connected_clients[client_id]
+        print(f"Client {client_id} disconnected.")
+        del self.connected_clients[client_id]
+        return ws
 
     def start(self):
-        print("Websocket server ready to accept connections")
-        return websockets.serve(self.handle_websocket, self.host, self.port)
+        web.run_app(self.app, host=self.host, port=self.port)

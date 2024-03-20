@@ -234,5 +234,23 @@ function toggleBufferingStrategyPanel() {
   }
 }
 
+function getWebSocketUrl() {
+  if (
+    window.location.protocol !== "https:" &&
+    window.location.protocol !== "http:"
+  )
+    return null;
+  const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+  const wsUrl = `${wsProtocol}://${window.location.host}/ws`;
+  return wsUrl;
+}
+
 // // Initialize WebSocket on page load
 // window.onload = initWebSocket;
+
+window.onload = () => {
+  const url = getWebSocketUrl();
+  document.getElementById("websocketAddress").value =
+    url ?? "ws://localhost/ws";
+  initWebSocket();
+};

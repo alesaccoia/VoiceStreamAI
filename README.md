@@ -13,18 +13,15 @@ VoiceStreamAI is a Python 3 -based server and JavaScript client solution that en
 - Customizable audio chunk processing strategies.
 - Support for multilingual transcription.
 
-## Demo Video
+## Demo
 
+[View Demo Video](https://raw.githubusercontent.com/TyreseDev/VoiceStreamAI/main/img/voicestreamai_test.mp4)
 
-https://github.com/alesaccoia/VoiceStreamAI/assets/1385023/9b5f2602-fe0b-4c9d-af9e-4662e42e23df
-
-## Demo Client
-
-![Client Demo](/img/client.png "Client Demo")
+![Demo Image](https://raw.githubusercontent.com/TyreseDev/VoiceStreamAI/main/img/client.png)
 
 ## Running with Docker
 
-This will not guide you in detail on how to use CUDA in docker, see for example [here](https://medium.com/@kevinsjy997/configure-docker-to-use-local-gpu-for-training-ml-models-70980168ec9b). 
+This will not guide you in detail on how to use CUDA in docker, see for example [here](https://medium.com/@kevinsjy997/configure-docker-to-use-local-gpu-for-training-ml-models-70980168ec9b).
 
 Still, these are the commands for Linux:
 
@@ -52,13 +49,13 @@ After getting your VAD token (see next sections) run:
 
 sudo docker volume create huggingface_models
 
-sudo docker run --gpus all -p 8765:8765 -v huggingface_models:/root/.cache/huggingface  -e PYANNOTE_AUTH_TOKEN='VAD_TOKEN_HERE' voicestreamai
+sudo docker run --gpus all -p 80:80 -v huggingface_models:/root/.cache/huggingface  -e PYANNOTE_AUTH_TOKEN='VAD_TOKEN_HERE' voicestreamai
 ```
 
 The "volume" stuff will allow you not to re-download the huggingface models each time you re-run the container. If you don't need this, just use:
 
 ```bash
-sudo docker run --gpus all -p 8765:8765 -e PYANNOTE_AUTH_TOKEN='VAD_TOKEN_HERE' voicestreamai
+sudo docker run --gpus all -p 80:80 -e PYANNOTE_AUTH_TOKEN='VAD_TOKEN_HERE' voicestreamai
 ```
 
 ## Normal, Manual Installation
@@ -92,7 +89,7 @@ The VoiceStreamAI server can be customized through command line arguments, allow
 - `--asr-type`: Specifies the type of Automatic Speech Recognition (ASR) pipeline to use (default: `faster_whisper`).
 - `--asr-args`: A JSON string containing additional arguments for the ASR pipeline (one can for example change `model_name` for whisper)
 - `--host`: Sets the host address for the WebSocket server (default: `127.0.0.1`).
-- `--port`: Sets the port on which the server listens (default: `8765`).
+- `--port`: Sets the port on which the server listens (default: `80`).
 
 For running the server with the standard configuration:
 
@@ -103,7 +100,7 @@ For running the server with the standard configuration:
 python3 -m src.main --vad-args '{"auth_token": "vad token here"}'
 ```
 
-You can see all the command line options with the command: 
+You can see all the command line options with the command:
 
 ```bash
 python3 -m src.main --help
@@ -112,12 +109,11 @@ python3 -m src.main --help
 ## Client Usage
 
 1. Open the `client/VoiceStreamAI_Client.html` file in a web browser.
-2. Enter the WebSocket address (default is `ws://localhost:8765`).
+2. Enter the WebSocket address (default is `ws://localhost/ws`).
 3. Configure the audio chunk length and offset. See below.
 4. Select the language for transcription.
 5. Click 'Connect' to establish a WebSocket connection.
 6. Use 'Start Streaming' and 'Stop Streaming' to control audio capture.
-
 
 ## Technology Overview
 
@@ -207,10 +203,8 @@ Please make sure that the end variables are in place for example for the VAD aut
 
 ### Dependence on Audio Files
 
-Currently, VoiceStreamAI processes audio by saving chunks to files and then running these files through the models. 
+Currently, VoiceStreamAI processes audio by saving chunks to files and then running these files through the models.
 
 ## Contributors
-
-- Alessandro Saccoia - [alessandro.saccoia@gmail.com](mailto:alessandro.saccoia@gmail.com)
 
 This project is open for contributions. Feel free to fork the repository and submit pull requests.
