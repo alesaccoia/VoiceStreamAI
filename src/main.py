@@ -2,7 +2,7 @@ import argparse
 import asyncio
 import json
 
-from .server import Server
+from src.server import Server
 from src.asr.asr_factory import ASRFactory
 from src.vad.vad_factory import VADFactory
 
