@@ -2,6 +2,7 @@ import websockets
 import uuid
 import json
 import asyncio
+import ssl
 
 from src.audio_utils import save_audio_to_file
 from src.client import Client
@@ -23,13 +24,15 @@ class Server:
         samples_width (int): The width of each audio sample in bits.
         connected_clients (dict): A dictionary mapping client IDs to Client objects.
     """
-    def __init__(self, vad_pipeline, asr_pipeline, host='localhost', port=8765, sampling_rate=16000, samples_width=2):
+    def __init__(self, vad_pipeline, asr_pipeline, host='localhost', port=8765, sampling_rate=16000, samples_width=2, certfile = None, keyfile = None):
         self.vad_pipeline = vad_pipeline
         self.asr_pipeline = asr_pipeline
         self.host = host
         self.port = port
         self.sampling_rate = sampling_rate
         self.samples_width = samples_width
+        self.certfile = certfile
+        self.keyfile = keyfile
         self.connected_clients = {}
 
     async def handle_audio(self, client, websocket):
@@ -65,5 +68,19 @@ class Server:
             del self.connected_clients[client_id]
 
     def start(self):
-        print("Websocket server ready to accept connections")
-        return websockets.serve(self.handle_websocket, self.host, self.port)
+        if self.certfile:
+            # Create an SSL context to enforce encrypted connections
+            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            
+            # Load your server's certificate and private key
+            # Replace 'your_cert_path.pem' and 'your_key_path.pem' with the actual paths to your files
+            ssl_context.load_cert_chain(certfile=self.certfile, keyfile=self.keyfile)
+
+            print(f"WebSocket server ready to accept secure connections on {self.host}:{self.port}")
+            
+            # Pass the SSL context to the serve function along with the host and port
+            # Ensure the secure flag is set to True if using a secure WebSocket protocol (wss://)
+            return websockets.serve(self.handle_websocket, self.host, self.port, ssl=ssl_context)
+        else:
+            print(f"WebSocket server ready to accept secure connections on {self.host}:{self.port}")
+            return websockets.serve(self.handle_websocket, self.host, self.port)
