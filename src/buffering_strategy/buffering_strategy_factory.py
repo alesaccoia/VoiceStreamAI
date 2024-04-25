@@ -1,5 +1,6 @@
 from .buffering_strategies import SilenceAtEndOfChunk
 
+
 class BufferingStrategyFactory:
     """
     A factory class for creating instances of different buffering strategies.

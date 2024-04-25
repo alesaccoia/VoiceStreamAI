@@ -1,0 +1,3 @@
+pydub
+sentence_transformers
+websockets
