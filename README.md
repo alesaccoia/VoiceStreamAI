@@ -94,7 +94,7 @@ The VoiceStreamAI server can be customized through command line arguments, allow
 - `--host`: Sets the host address for the WebSocket server (default: `127.0.0.1`).
 - `--port`: Sets the port on which the server listens (default: `8765`).
 - `--certfile`: The path to the SSL certificate (cert file) if using secure websockets (default: `None`)
-- `--key`: The path to the SSL key file if using secure websockets (default: `None`)
+- `--keyfile`: The path to the SSL key file if using secure websockets (default: `None`)
 
 For running the server with the standard configuration:
 
