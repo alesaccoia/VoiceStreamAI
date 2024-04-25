@@ -14,6 +14,8 @@ def parse_args():
     parser.add_argument("--asr-args", type=str, default='{"model_size": "large-v3"}', help="JSON string of additional arguments for ASR pipeline")
     parser.add_argument("--host", type=str, default="127.0.0.1", help="Host for the WebSocket server")
     parser.add_argument("--port", type=int, default=8765, help="Port for the WebSocket server")
+    parser.add_argument("--certfile", type=str, default=None, help="The path to the SSL certificate (cert file) if using secure websockets")
+    parser.add_argument("--keyfile", type=str, default=None, help="The path to the SSL key file if using secure websockets")
     return parser.parse_args()
 
 def main():
@@ -29,7 +31,7 @@ def main():
     vad_pipeline = VADFactory.create_vad_pipeline(args.vad_type, **vad_args)
     asr_pipeline = ASRFactory.create_asr_pipeline(args.asr_type, **asr_args)
 
-    server = Server(vad_pipeline, asr_pipeline, host=args.host, port=args.port, sampling_rate=16000, samples_width=2)
+    server = Server(vad_pipeline, asr_pipeline, host=args.host, port=args.port, sampling_rate=16000, samples_width=2, certfile=args.certfile, keyfile=args.keyfile)
 
     asyncio.get_event_loop().run_until_complete(server.start())
     asyncio.get_event_loop().run_forever()

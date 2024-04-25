@@ -12,9 +12,9 @@ VoiceStreamAI is a Python 3 -based server and JavaScript client solution that en
 - Unit testing framework for robust development.
 - Customizable audio chunk processing strategies.
 - Support for multilingual transcription.
+- Supports Secure Sockets with optional cert and key file arguments
 
 ## Demo Video
-
 
 https://github.com/alesaccoia/VoiceStreamAI/assets/1385023/9b5f2602-fe0b-4c9d-af9e-4662e42e23df
 
@@ -24,7 +24,7 @@ https://github.com/alesaccoia/VoiceStreamAI/assets/1385023/9b5f2602-fe0b-4c9d-af
 
 ## Running with Docker
 
-This will not guide you in detail on how to use CUDA in docker, see for example [here](https://medium.com/@kevinsjy997/configure-docker-to-use-local-gpu-for-training-ml-models-70980168ec9b). 
+This will not guide you in detail on how to use CUDA in docker, see for example [here](https://medium.com/@kevinsjy997/configure-docker-to-use-local-gpu-for-training-ml-models-70980168ec9b).
 
 Still, these are the commands for Linux:
 
@@ -93,6 +93,8 @@ The VoiceStreamAI server can be customized through command line arguments, allow
 - `--asr-args`: A JSON string containing additional arguments for the ASR pipeline (one can for example change `model_name` for whisper)
 - `--host`: Sets the host address for the WebSocket server (default: `127.0.0.1`).
 - `--port`: Sets the port on which the server listens (default: `8765`).
+- `--certfile`: The path to the SSL certificate (cert file) if using secure websockets (default: `None`)
+- `--key`: The path to the SSL key file if using secure websockets (default: `None`)
 
 For running the server with the standard configuration:
 
@@ -103,7 +105,7 @@ For running the server with the standard configuration:
 python3 -m src.main --vad-args '{"auth_token": "vad token here"}'
 ```
 
-You can see all the command line options with the command: 
+You can see all the command line options with the command:
 
 ```bash
 python3 -m src.main --help
@@ -117,7 +119,6 @@ python3 -m src.main --help
 4. Select the language for transcription.
 5. Click 'Connect' to establish a WebSocket connection.
 6. Use 'Start Streaming' and 'Stop Streaming' to control audio capture.
-
 
 ## Technology Overview
 
@@ -173,16 +174,16 @@ The client configuration can include various parameters such as language prefere
 
 ```javascript
 function sendAudioConfig() {
-    const audioConfig = {
-        type: 'config',
-        data: {
-            chunk_length_seconds: 5, 
-            chunk_offset_seconds: 1,
-            processing_strategy: 1,
-            language: language
-        }
-    };
-    websocket.send(JSON.stringify(audioConfig));
+  const audioConfig = {
+    type: "config",
+    data: {
+      chunk_length_seconds: 5,
+      chunk_offset_seconds: 1,
+      processing_strategy: 1,
+      language: language,
+    },
+  };
+  websocket.send(JSON.stringify(audioConfig));
 }
 ```
 
@@ -207,7 +208,7 @@ Please make sure that the end variables are in place for example for the VAD aut
 
 ### Dependence on Audio Files
 
-Currently, VoiceStreamAI processes audio by saving chunks to files and then running these files through the models. 
+Currently, VoiceStreamAI processes audio by saving chunks to files and then running these files through the models.
 
 ## Contributors
 
