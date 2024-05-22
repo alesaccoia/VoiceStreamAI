@@ -129,7 +129,7 @@ python3 -m src.main --help
 
 ## Client Usage
 
-1. Open the `client/VoiceStreamAI_Client.html` file in a web browser.
+1. Open the `client/index.html` file in a web browser.
 2. Enter the WebSocket address (default is `ws://localhost:8765`).
 3. Configure the audio chunk length and offset. See below.
 4. Select the language for transcription.
