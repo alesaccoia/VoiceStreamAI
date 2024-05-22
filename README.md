@@ -257,6 +257,7 @@ When implementing a new ASR, Vad or Buffering Strategy you can test it with:
 
 ```bash
 pip install -r requirements-dev.txt
+export PYANNOTE_AUTH_TOKEN=<VAD_TOKEN_HERE>
 ASR_TYPE=faster_whisper python -m unittest test.server.test_server
 ```
 
@@ -279,6 +280,32 @@ ASR.
 
 Currently, VoiceStreamAI processes audio by saving chunks to files and then
 running these files through the models.
+
+## Development
+
+Fork and clone this repository. Install dependencies and related tools.
+
+```bash
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+npm install -g jshint@2.13.6 eslint@8.57.0
+```
+
+Add your modifications to the repository and run code style checks manually,
+or integrate them into your IDE/editor.
+
+```bash
+# For Python
+flake8 src/ test/
+black --line-length 79 src/ test/
+isort src/ test/
+
+# For JavaScript
+jshint client/*.js
+eslint client/*.js
+```
+
+Finally, push and create a pull request.
 
 ## Contributors
 
