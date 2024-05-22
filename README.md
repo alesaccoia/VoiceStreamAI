@@ -76,7 +76,7 @@ To set up the VoiceStreamAI server, you need Python 3.8 or later and the followi
 Install these packages using pip:
 
 ```bash
-pip install -r requirements
+pip install -r requirements.txt
 ```
 
 For the client-side, you need a modern web browser with JavaScript support.
