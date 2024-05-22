@@ -256,7 +256,8 @@ function sendAudioConfig() {
 When implementing a new ASR, Vad or Buffering Strategy you can test it with:
 
 ```bash
-ASR_TYPE=faster_whisper ASR_TYPE=faster_whisper  python3 -m unittest test.server.test_server
+pip install -r requirements-dev.txt
+ASR_TYPE=faster_whisper python -m unittest test.server.test_server
 ```
 
 Please make sure that the end variables are in place for example for the VAD
