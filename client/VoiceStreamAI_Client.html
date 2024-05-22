@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 
+<!--
   VoiceStreamAI Client Interface
   Real-time audio transcription using self-hosted Whisper and WebSocket
 
@@ -8,126 +8,140 @@
 -->
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Audio Stream to WebSocket Server</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background: #f4f4f4;
-            text-align: center;
-        }
-        h1 {
-            color: #333;
-        }
-        .controls {
-            margin: 20px auto;
-            padding: 10px;
-            width: 80%;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-        }
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .controls input, .controls button, .controls select {
-            padding: 8px;
-            margin: 5px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 0.9em;
-        }
-        #transcription {
-            margin: 20px auto;
-            border: 1px solid #ddd;
-            padding: 10px;
-            width: 80%;
-            height: 150px;
-            overflow-y: auto;
-            background: white;
-        }
-        .label {
-            font-size: 0.9em;
-            color: #555;
-            margin-bottom: 5px;
-        }
-        button {
-            cursor: pointer;
-        }
-        .buffering-strategy-panel {
-            margin-top: 10px;
-        }
-        /* ... existing styles ... */
-        .hidden {
-            display: none;
-        }
-    </style>
-    <script src='utils.js'></script>
+  <meta charset="UTF-8">
+  <title>Audio Stream to WebSocket Server</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f4f4;
+      text-align: center;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    .controls {
+      margin: 20px auto;
+      padding: 10px;
+      width: 80%;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .controls input, .controls button, .controls select {
+      padding: 8px;
+      margin: 5px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 0.9em;
+    }
+
+    #transcription {
+      margin: 20px auto;
+      border: 1px solid #ddd;
+      padding: 10px;
+      width: 80%;
+      height: 150px;
+      overflow-y: auto;
+      background: white;
+    }
+
+    .label {
+      font-size: 0.9em;
+      color: #555;
+      margin-bottom: 5px;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .buffering-strategy-panel {
+      margin-top: 10px;
+    }
+
+    /* ... existing styles ... */
+    .hidden {
+      display: none;
+    }
+  </style>
+  <script src='utils.js'></script>
 </head>
 <body>
-    <h1>Transcribe a Web Audio Stream with Huggingface VAD + Whisper</h1>
-    <div class="controls">
-        <div class="control-group">
-            <label class="label" for="websocketAddress">WebSocket Address:</label>
-            <input type="text" id="websocketAddress" value="ws://localhost:8765">
-        </div>
-        <div class="control-group">
-            <label class="label" for="bufferingStrategySelect" onchange="toggleBufferingStrategyPanel()">Buffering Strategy:</label>
-            <select id="bufferingStrategySelect">
-                <option value="silence_at_end_of_chunk" selected>Silence at End of Chunk</option>
-            </select>
-        </div>
-        <div class="silence_at_end_of_chunk_options_panel">
-            <div class="control-group">
-                <label class="label" for="chunk_length_seconds">Chunk Length (s):</label>
-                <input type="number" id="chunk_length_seconds" value="3" min="1">
-            </div>
-            <div class="control-group">
-                <label class="label" for="chunk_offset_seconds">Silence at the End of Chunk (s):</label>
-                <input type="number" id="chunk_offset_seconds" value="0.1" min="0">
-            </div>
-        </div>
-        <div class="control-group">
-            <label class="label" for="languageSelect">Language:</label>
-            <select id="languageSelect">
-                <option value="multilingual">Multilingual</option>
-                <option value="english">English</option>
-                <option value="italian">Italian</option>
-                <option value="spanish">Spanish</option>
-                <option value="french">French</option>
-                <option value="german">German</option>
-                <option value="chinese">Chinese</option>
-                <option value="arabic">Arabic</option>
-                <option value="portuguese">Portuguese</option>
-                <option value="russian">Russian</option>
-                <option value="japanese">Japanese</option>
-                <option value="dutch">Dutch</option>
-                <option value="korean">Korean</option>
-                <option value="hindi">Hindi</option>
-                <option value="turkish">Turkish</option>
-                <option value="swedish">Swedish</option>
-                <option value="norwegian">Norwegian</option>
-                <option value="danish">Danish</option>
-                <option value="polish">Polish</option>
-                <option value="finnish">Finnish</option>
-                <option value="thai">Thai</option>
-                <option value="czech">Czech</option>
-                <option value="hungarian">Hungarian</option>
-                <option value="greek">Greek</option>
-            </select>
-        </div>
-        <button onclick="initWebSocket()">Connect</button>
+<h1>Transcribe a Web Audio Stream with Huggingface VAD + Whisper</h1>
+<div class="controls">
+  <div class="control-group">
+    <label class="label" for="websocketAddress">WebSocket Address:</label>
+    <input type="text" id="websocketAddress" value="ws://localhost:8765">
+  </div>
+  <div class="control-group">
+    <label class="label" for="bufferingStrategySelect"
+           onchange="toggleBufferingStrategyPanel()">Buffering Strategy:</label>
+    <select id="bufferingStrategySelect">
+      <option value="silence_at_end_of_chunk" selected>Silence at End of Chunk
+      </option>
+    </select>
+  </div>
+  <div class="silence_at_end_of_chunk_options_panel">
+    <div class="control-group">
+      <label class="label" for="chunk_length_seconds">Chunk Length (s):</label>
+      <input type="number" id="chunk_length_seconds" value="3" min="1">
     </div>
-    <button id="startButton" onclick='startRecording()' disabled>Start Streaming</button>
-    <button id="stopButton" onclick='stopRecording()' disabled>Stop Streaming</button>
-    <div id="transcription"></div>
-    <br/>
-    <div>WebSocket: <span id="webSocketStatus">Not Connected</span></div>
-    <div>Detected Language: <span id="detected_language">Undefined</span></div>
-    <div>Last Processing Time: <span id="processing_time">Undefined</span></div>
+    <div class="control-group">
+      <label class="label" for="chunk_offset_seconds">Silence at the End of
+        Chunk (s):</label>
+      <input type="number" id="chunk_offset_seconds" value="0.1" min="0">
+    </div>
+  </div>
+  <div class="control-group">
+    <label class="label" for="languageSelect">Language:</label>
+    <select id="languageSelect">
+      <option value="multilingual">Multilingual</option>
+      <option value="english">English</option>
+      <option value="italian">Italian</option>
+      <option value="spanish">Spanish</option>
+      <option value="french">French</option>
+      <option value="german">German</option>
+      <option value="chinese">Chinese</option>
+      <option value="arabic">Arabic</option>
+      <option value="portuguese">Portuguese</option>
+      <option value="russian">Russian</option>
+      <option value="japanese">Japanese</option>
+      <option value="dutch">Dutch</option>
+      <option value="korean">Korean</option>
+      <option value="hindi">Hindi</option>
+      <option value="turkish">Turkish</option>
+      <option value="swedish">Swedish</option>
+      <option value="norwegian">Norwegian</option>
+      <option value="danish">Danish</option>
+      <option value="polish">Polish</option>
+      <option value="finnish">Finnish</option>
+      <option value="thai">Thai</option>
+      <option value="czech">Czech</option>
+      <option value="hungarian">Hungarian</option>
+      <option value="greek">Greek</option>
+    </select>
+  </div>
+  <button onclick="initWebSocket()">Connect</button>
+</div>
+<button id="startButton" onclick='startRecording()' disabled>Start Streaming
+</button>
+<button id="stopButton" onclick='stopRecording()' disabled>Stop Streaming
+</button>
+<div id="transcription"></div>
+<br/>
+<div>WebSocket: <span id="webSocketStatus">Not Connected</span></div>
+<div>Detected Language: <span id="detected_language">Undefined</span></div>
+<div>Last Processing Time: <span id="processing_time">Undefined</span></div>
 </body>
 </html>
