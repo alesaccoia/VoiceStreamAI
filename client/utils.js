@@ -9,33 +9,36 @@ let websocket;
 let context;
 let processor;
 let globalStream;
+let language;
 
 const bufferSize = 4096;
 let isRecording = false;
 
 function initWebSocket() {
-    const websocketAddress = document.getElementById('websocketAddress').value;
-    let chunk_length_seconds = document.getElementById('chunk_length_seconds').value;
-    let chunk_offset_seconds = document.getElementById('chunk_offset_seconds').value;
-    const selectedLanguage = document.getElementById('languageSelect').value;
-    language = selectedLanguage !== 'multilingual' ? selectedLanguage : null;
+    const websocketAddress = document.getElementById('websocketAddress');
+    const selectedLanguage = document.getElementById('languageSelect');
+    const websocketStatus = document.getElementById('webSocketStatus');
+    const startButton = document.getElementById('startButton');
+    const stopButton = document.getElementById('stopButton');
 
-    if (!websocketAddress) {
+    language = selectedLanguage.value !== 'multilingual' ? selectedLanguage.value : null;
+
+    if (!websocketAddress.value) {
         console.log("WebSocket address is required.");
         return;
     }
 
-    websocket = new WebSocket(websocketAddress);
+    websocket = new WebSocket(websocketAddress.value);
     websocket.onopen = () => {
         console.log("WebSocket connection established");
-        document.getElementById("webSocketStatus").textContent = 'Connected';
-        document.getElementById('startButton').disabled = false;
+        websocketStatus.textContent = 'Connected';
+        startButton.disabled = false;
     };
     websocket.onclose = event => {
         console.log("WebSocket connection closed", event);
-        document.getElementById("webSocketStatus").textContent = 'Not Connected';
-        document.getElementById('startButton').disabled = true;
-        document.getElementById('stopButton').disabled = true;
+        websocketStatus.textContent = 'Not Connected';
+        startButton.disabled = true;
+        stopButton.disabled = true;
     };
     websocket.onmessage = event => {
         console.log("Message from server:", event.data);
@@ -99,8 +102,9 @@ function startRecording() {
         const input = context.createMediaStreamSource(stream);
         processor = context.createScriptProcessor(bufferSize, 1, 1);
         processor.onaudioprocess = e => processAudio(e);
-        input.connect(processor);
-        processor.connect(context.destination);
+
+        // chain up the audio graph
+        input.connect(processor).connect(context.destination);
 
         sendAudioConfig();
     }).catch(error => console.error('Error accessing microphone', error));
