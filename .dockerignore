@@ -1,0 +1,11 @@
+# VCS
+.git
+.gitignore
+
+# virtual environment
+.venv
+venv
+
+# IDE/editor
+.idea
+.vscode
