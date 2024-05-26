@@ -51,7 +51,7 @@ function updateTranscription(transcript_data) {
     const transcriptionDiv = document.getElementById('transcription');
     const languageDiv = document.getElementById('detected_language');
 
-    if (transcript_data.words && transcript_data.words.length > 0) {
+    if (Array.isArray(transcript_data.words) && transcript_data.words.length > 0) {
         // Append words with color based on their probability
         transcript_data.words.forEach(wordData => {
             const span = document.createElement('span');
@@ -80,6 +80,8 @@ function updateTranscription(transcript_data) {
     // Update the language information
     if (transcript_data.language && transcript_data.language_probability) {
         languageDiv.textContent = transcript_data.language + ' (' + transcript_data.language_probability.toFixed(2) + ')';
+    } else {
+        languageDiv.textContent = 'Not Supported';
     }
 
     // Update the processing time, if available
