@@ -1,6 +1,6 @@
 import os
-import torch
 
+import torch
 from transformers import pipeline
 
 from src.audio_utils import save_audio_to_file
