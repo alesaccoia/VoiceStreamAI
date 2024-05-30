@@ -12,7 +12,6 @@ let globalStream;
 let language;
 let isRecording = false;
 
-const bufferSize = 4096;
 const websocketAddress = document.querySelector('#websocketAddress');
 const selectedLanguage = document.querySelector('#languageSelect');
 const websocketStatus = document.querySelector('#webSocketStatus');
@@ -52,7 +51,7 @@ connectButton.addEventListener("click", () => {
         const transcript_data = JSON.parse(event.data);
         updateTranscription(transcript_data);
     };
-})
+});
 
 function updateTranscription(transcript_data) {
     if (Array.isArray(transcript_data.words) && transcript_data.words.length > 0) {
@@ -102,23 +101,41 @@ startButton.addEventListener("click", () => {
     isRecording = true;
 
     context = new AudioContext();
-
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+    let onSuccess = async (stream) => {
         globalStream = stream;
         const input = context.createMediaStreamSource(stream);
-        processor = context.createScriptProcessor(bufferSize, 1, 1);
-        processor.onaudioprocess = e => processAudio(e);
-
-        // chain up the audio graph
-        input.connect(processor).connect(context.destination);
-
+        const recordingNode = await setupRecordingWorkletNode();
+        recordingNode.port.onmessage = (event) => {
+            processAudio(event.data);
+        };
+        input.connect(recordingNode);
         sendAudioConfig();
-    }).catch(error => console.error('Error accessing microphone', error));
+    };
+    let onError = (error) => {
+        console.error(error);
+    };
+    navigator.mediaDevices.getUserMedia({
+        audio: {
+            echoCancellation: true,
+            autoGainControl: false,
+            noiseSuppression: true,
+            latency: 0
+        }
+    }).then(onSuccess, onError);
 
     // Disable start button and enable stop button
     startButton.disabled = true;
     stopButton.disabled = false;
-})
+});
+
+async function setupRecordingWorkletNode() {
+    await context.audioWorklet.addModule('realtime-audio-processor.js');
+
+    return new AudioWorkletNode(
+        context,
+        'realtime-audio-processor'
+    );
+}
 
 stopButton.addEventListener("click", () => {
     if (!isRecording) return;
@@ -136,7 +153,7 @@ stopButton.addEventListener("click", () => {
     }
     startButton.disabled = false;
     stopButton.disabled = true;
-})
+});
 
 function sendAudioConfig() {
     let processingArgs = {};
@@ -152,7 +169,6 @@ function sendAudioConfig() {
         type: 'config',
         data: {
             sampleRate: context.sampleRate,
-            bufferSize: bufferSize,
             channels: 1, // Assuming mono channel
             language: language,
             processing_strategy: selectedStrategy.value,
@@ -163,7 +179,25 @@ function sendAudioConfig() {
     websocket.send(JSON.stringify(audioConfig));
 }
 
-function downsampleBuffer(buffer, inputSampleRate, outputSampleRate) {
+function processAudio(sampleData) {
+    const inputSampleRate = context.sampleRate;
+    const outputSampleRate = 16000;
+
+    // ASR (Automatic Speech Recognition) and VAD (Voice Activity Detection)
+    // models typically require mono audio with a sampling rate of 16 kHz,
+    // represented as a signed int16 array type.
+    //
+    // Implementing changes to the sampling rate using JavaScript can reduce
+    // computational costs on the server.
+    const decreaseResultBuffer = decreaseSampleRate(sampleData, inputSampleRate, outputSampleRate);
+    const audioData = convertFloat32ToInt16(decreaseResultBuffer);
+
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+        websocket.send(audioData);
+    }
+}
+
+function decreaseSampleRate(buffer, inputSampleRate, outputSampleRate) {
     if (inputSampleRate === outputSampleRate) {
         return buffer;
     }
@@ -184,19 +218,6 @@ function downsampleBuffer(buffer, inputSampleRate, outputSampleRate) {
         offsetBuffer = nextOffsetBuffer;
     }
     return result;
-}
-
-function processAudio(e) {
-    const inputSampleRate = context.sampleRate;
-    const outputSampleRate = 16000; // Target sample rate
-
-    const left = e.inputBuffer.getChannelData(0);
-    const downsampledBuffer = downsampleBuffer(left, inputSampleRate, outputSampleRate);
-    const audioData = convertFloat32ToInt16(downsampledBuffer);
-
-    if (websocket && websocket.readyState === WebSocket.OPEN) {
-        websocket.send(audioData);
-    }
 }
 
 function convertFloat32ToInt16(buffer) {
