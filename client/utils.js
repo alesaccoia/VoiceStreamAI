@@ -10,17 +10,24 @@ let context;
 let processor;
 let globalStream;
 let language;
-
-const bufferSize = 4096;
 let isRecording = false;
 
-function initWebSocket() {
-    const websocketAddress = document.getElementById('websocketAddress');
-    const selectedLanguage = document.getElementById('languageSelect');
-    const websocketStatus = document.getElementById('webSocketStatus');
-    const startButton = document.getElementById('startButton');
-    const stopButton = document.getElementById('stopButton');
+const bufferSize = 4096;
+const websocketAddress = document.querySelector('#websocketAddress');
+const selectedLanguage = document.querySelector('#languageSelect');
+const websocketStatus = document.querySelector('#webSocketStatus');
+const connectButton = document.querySelector("#connectButton");
+const startButton = document.querySelector('#startButton');
+const stopButton = document.querySelector('#stopButton');
+const transcriptionDiv = document.querySelector('#transcription');
+const languageDiv = document.querySelector('#detected_language');
+const processingTimeDiv = document.querySelector('#processing_time');
+const panel = document.querySelector('#silence_at_end_of_chunk_options_panel');
+const selectedStrategy = document.querySelector('#bufferingStrategySelect');
+const chunk_length_seconds = document.querySelector('#chunk_length_seconds');
+const chunk_offset_seconds = document.querySelector('#chunk_offset_seconds');
 
+connectButton.addEventListener("click", () => {
     language = selectedLanguage.value !== 'multilingual' ? selectedLanguage.value : null;
 
     if (!websocketAddress.value) {
@@ -45,12 +52,9 @@ function initWebSocket() {
         const transcript_data = JSON.parse(event.data);
         updateTranscription(transcript_data);
     };
-}
+})
 
 function updateTranscription(transcript_data) {
-    const transcriptionDiv = document.getElementById('transcription');
-    const languageDiv = document.getElementById('detected_language');
-
     if (Array.isArray(transcript_data.words) && transcript_data.words.length > 0) {
         // Append words with color based on their probability
         transcript_data.words.forEach(wordData => {
@@ -88,21 +92,18 @@ function updateTranscription(transcript_data) {
     }
 
     // Update the processing time, if available
-    const processingTimeDiv = document.getElementById('processing_time');
     if (transcript_data.processing_time) {
         processingTimeDiv.textContent = 'Processing time: ' + transcript_data.processing_time.toFixed(2) + ' seconds';
     }
 }
 
-
-function startRecording() {
+startButton.addEventListener("click", () => {
     if (isRecording) return;
     isRecording = true;
 
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
     context = new AudioContext();
 
-    navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
         globalStream = stream;
         const input = context.createMediaStreamSource(stream);
         processor = context.createScriptProcessor(bufferSize, 1, 1);
@@ -115,11 +116,11 @@ function startRecording() {
     }).catch(error => console.error('Error accessing microphone', error));
 
     // Disable start button and enable stop button
-    document.getElementById('startButton').disabled = true;
-    document.getElementById('stopButton').disabled = false;
-}
+    startButton.disabled = true;
+    stopButton.disabled = false;
+})
 
-function stopRecording() {
+stopButton.addEventListener("click", () => {
     if (!isRecording) return;
     isRecording = false;
 
@@ -133,18 +134,17 @@ function stopRecording() {
     if (context) {
         context.close().then(() => context = null);
     }
-    document.getElementById('startButton').disabled = false;
-    document.getElementById('stopButton').disabled = true;
-}
+    startButton.disabled = false;
+    stopButton.disabled = true;
+})
 
 function sendAudioConfig() {
-    let selectedStrategy = document.getElementById('bufferingStrategySelect').value;
     let processingArgs = {};
 
-    if (selectedStrategy === 'silence_at_end_of_chunk') {
+    if (selectedStrategy.value === 'silence_at_end_of_chunk') {
         processingArgs = {
-            chunk_length_seconds: parseFloat(document.getElementById('chunk_length_seconds').value),
-            chunk_offset_seconds: parseFloat(document.getElementById('chunk_offset_seconds').value)
+            chunk_length_seconds: parseFloat(chunk_length_seconds.value),
+            chunk_offset_seconds: parseFloat(chunk_offset_seconds.value)
         };
     }
 
@@ -155,7 +155,7 @@ function sendAudioConfig() {
             bufferSize: bufferSize,
             channels: 1, // Assuming mono channel
             language: language,
-            processing_strategy: selectedStrategy,
+            processing_strategy: selectedStrategy.value,
             processing_args: processingArgs
         }
     };
@@ -212,9 +212,7 @@ function convertFloat32ToInt16(buffer) {
 //  window.onload = initWebSocket;
 
 function toggleBufferingStrategyPanel() {
-    let selectedStrategy = document.getElementById('bufferingStrategySelect').value;
-    let panel = document.getElementById('silence_at_end_of_chunk_options_panel');
-    if (selectedStrategy === 'silence_at_end_of_chunk') {
+    if (selectedStrategy.value === 'silence_at_end_of_chunk') {
         panel.classList.remove('hidden');
     } else {
         panel.classList.add('hidden');
