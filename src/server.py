@@ -1,4 +1,5 @@
 import json
+import logging
 import ssl
 import uuid
 
@@ -57,6 +58,7 @@ class Server:
                 config = json.loads(message)
                 if config.get("type") == "config":
                     client.update_config(config["data"])
+                    logging.debug(f"Updated config: {client.config}")
                     continue
             else:
                 print(f"Unexpected message type from {client.client_id}")

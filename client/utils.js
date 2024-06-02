@@ -9,7 +9,6 @@ let websocket;
 let context;
 let processor;
 let globalStream;
-let language;
 let isRecording = false;
 
 const websocketAddress = document.querySelector('#websocketAddress');
@@ -48,8 +47,6 @@ function resetWebsocketHandler() {
 }
 
 function connectWebsocketHandler() {
-    language = selectedLanguage.value !== 'multilingual' ? selectedLanguage.value : null;
-
     if (!websocketAddress.value) {
         console.log("WebSocket address is required.");
         return;
@@ -126,7 +123,12 @@ function startRecordingHandler() {
     isRecording = true;
 
     context = new AudioContext();
+
     let onSuccess = async (stream) => {
+        // Push user config to server
+        let language = selectedLanguage.value !== 'multilingual' ? selectedLanguage.value : null;
+        sendAudioConfig(language);
+
         globalStream = stream;
         const input = context.createMediaStreamSource(stream);
         const recordingNode = await setupRecordingWorkletNode();
@@ -134,7 +136,6 @@ function startRecordingHandler() {
             processAudio(event.data);
         };
         input.connect(recordingNode);
-        sendAudioConfig();
     };
     let onError = (error) => {
         console.error(error);
@@ -182,7 +183,7 @@ function stopRecordingHandler() {
     stopButton.disabled = true;
 }
 
-function sendAudioConfig() {
+function sendAudioConfig(language) {
     let processingArgs = {};
 
     if (selectedStrategy.value === 'silence_at_end_of_chunk') {
