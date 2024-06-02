@@ -26,7 +26,28 @@ const selectedStrategy = document.querySelector('#bufferingStrategySelect');
 const chunk_length_seconds = document.querySelector('#chunk_length_seconds');
 const chunk_offset_seconds = document.querySelector('#chunk_offset_seconds');
 
-connectButton.addEventListener("click", () => {
+websocketAddress.addEventListener("input", resetWebsocketHandler);
+
+websocketAddress.addEventListener("keydown", (event) => {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        connectWebsocketHandler();
+    }
+});
+
+connectButton.addEventListener("click", connectWebsocketHandler);
+
+function resetWebsocketHandler() {
+    if (isRecording) {
+        stopRecordingHandler();
+    }
+    if (websocket.readyState === WebSocket.OPEN) {
+        websocket.close();
+    }
+    connectButton.disabled = false;
+}
+
+function connectWebsocketHandler() {
     language = selectedLanguage.value !== 'multilingual' ? selectedLanguage.value : null;
 
     if (!websocketAddress.value) {
@@ -39,19 +60,21 @@ connectButton.addEventListener("click", () => {
         console.log("WebSocket connection established");
         websocketStatus.textContent = 'Connected';
         startButton.disabled = false;
+        connectButton.disabled = true;
     };
     websocket.onclose = event => {
         console.log("WebSocket connection closed", event);
         websocketStatus.textContent = 'Not Connected';
         startButton.disabled = true;
         stopButton.disabled = true;
+        connectButton.disabled = false;
     };
     websocket.onmessage = event => {
         console.log("Message from server:", event.data);
         const transcript_data = JSON.parse(event.data);
         updateTranscription(transcript_data);
     };
-});
+}
 
 function updateTranscription(transcript_data) {
     if (Array.isArray(transcript_data.words) && transcript_data.words.length > 0) {
@@ -96,7 +119,9 @@ function updateTranscription(transcript_data) {
     }
 }
 
-startButton.addEventListener("click", () => {
+startButton.addEventListener("click", startRecordingHandler);
+
+function startRecordingHandler() {
     if (isRecording) return;
     isRecording = true;
 
@@ -126,7 +151,7 @@ startButton.addEventListener("click", () => {
     // Disable start button and enable stop button
     startButton.disabled = true;
     stopButton.disabled = false;
-});
+}
 
 async function setupRecordingWorkletNode() {
     await context.audioWorklet.addModule('realtime-audio-processor.js');
@@ -137,7 +162,9 @@ async function setupRecordingWorkletNode() {
     );
 }
 
-stopButton.addEventListener("click", () => {
+stopButton.addEventListener("click", stopRecordingHandler);
+
+function stopRecordingHandler() {
     if (!isRecording) return;
     isRecording = false;
 
@@ -153,7 +180,7 @@ stopButton.addEventListener("click", () => {
     }
     startButton.disabled = false;
     stopButton.disabled = true;
-});
+}
 
 function sendAudioConfig() {
     let processingArgs = {};
