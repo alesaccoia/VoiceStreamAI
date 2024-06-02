@@ -197,7 +197,7 @@ function sendAudioConfig(language) {
         type: 'config',
         data: {
             sampleRate: context.sampleRate,
-            channels: 1, // Assuming mono channel
+            channels: 1,
             language: language,
             processing_strategy: selectedStrategy.value,
             processing_args: processingArgs
@@ -208,16 +208,14 @@ function sendAudioConfig(language) {
 }
 
 function processAudio(sampleData) {
-    const inputSampleRate = context.sampleRate;
-    const outputSampleRate = 16000;
-
     // ASR (Automatic Speech Recognition) and VAD (Voice Activity Detection)
     // models typically require mono audio with a sampling rate of 16 kHz,
     // represented as a signed int16 array type.
     //
     // Implementing changes to the sampling rate using JavaScript can reduce
     // computational costs on the server.
-    const decreaseResultBuffer = decreaseSampleRate(sampleData, inputSampleRate, outputSampleRate);
+    const outputSampleRate = 16000;
+    const decreaseResultBuffer = decreaseSampleRate(sampleData, context.sampleRate, outputSampleRate);
     const audioData = convertFloat32ToInt16(decreaseResultBuffer);
 
     if (websocket && websocket.readyState === WebSocket.OPEN) {
@@ -226,11 +224,15 @@ function processAudio(sampleData) {
 }
 
 function decreaseSampleRate(buffer, inputSampleRate, outputSampleRate) {
-    if (inputSampleRate === outputSampleRate) {
-        return buffer;
+    if (inputSampleRate < outputSampleRate) {
+        console.error("Sample rate too small.");
+        return;
+    } else if (inputSampleRate === outputSampleRate) {
+        return;
     }
+
     let sampleRateRatio = inputSampleRate / outputSampleRate;
-    let newLength = Math.round(buffer.length / sampleRateRatio);
+    let newLength = Math.ceil(buffer.length / sampleRateRatio);
     let result = new Float32Array(newLength);
     let offsetResult = 0;
     let offsetBuffer = 0;
