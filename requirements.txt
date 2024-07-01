@@ -1,7 +1,9 @@
-websockets
-speechbrain
-pyannote-audio
-asyncio
-sentence-transformers
-transformers
-faster-whisper
+websockets==12.0
+speechbrain==1.0.0
+pyannote.audio==3.2.0
+asyncio==3.4.3
+sentence-transformers==2.7.0
+transformers==4.40.2
+faster-whisper==1.0.2
+torchvision~=0.18.0
+torch~=2.3.0

@@ -1,5 +1,6 @@
 from .pyannote_vad import PyannoteVAD
 
+
 class VADFactory:
     """
     Factory for creating instances of VAD systems.

@@ -11,6 +11,9 @@ class VADInterface:
             client (src.Client): The client to detect on
 
         Returns:
-            List: VAD result, a list of objects containing "start", "end", "confidence"
+            List: VAD result, a list of objects containing "start", "end",
+                  "confidence".
         """
-        raise NotImplementedError("This method should be implemented by subclasses.")
+        raise NotImplementedError(
+            "This method should be implemented by subclasses."
+        )

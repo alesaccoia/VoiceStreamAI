@@ -9,34 +9,36 @@ let websocket;
 let context;
 let processor;
 let globalStream;
+let language;
 
-const websocket_uri = 'ws://localhost:8765';
 const bufferSize = 4096;
 let isRecording = false;
 
 function initWebSocket() {
-    const websocketAddress = document.getElementById('websocketAddress').value;
-    chunk_length_seconds = document.getElementById('chunk_length_seconds').value;
-    chunk_offset_seconds = document.getElementById('chunk_offset_seconds').value;
-    const selectedLanguage = document.getElementById('languageSelect').value;
-    language = selectedLanguage !== 'multilingual' ? selectedLanguage : null;
-    
-    if (!websocketAddress) {
+    const websocketAddress = document.getElementById('websocketAddress');
+    const selectedLanguage = document.getElementById('languageSelect');
+    const websocketStatus = document.getElementById('webSocketStatus');
+    const startButton = document.getElementById('startButton');
+    const stopButton = document.getElementById('stopButton');
+
+    language = selectedLanguage.value !== 'multilingual' ? selectedLanguage.value : null;
+
+    if (!websocketAddress.value) {
         console.log("WebSocket address is required.");
         return;
     }
 
-    websocket = new WebSocket(websocketAddress);
+    websocket = new WebSocket(websocketAddress.value);
     websocket.onopen = () => {
         console.log("WebSocket connection established");
-        document.getElementById("webSocketStatus").textContent = 'Connected';
-        document.getElementById('startButton').disabled = false;
+        websocketStatus.textContent = 'Connected';
+        startButton.disabled = false;
     };
     websocket.onclose = event => {
         console.log("WebSocket connection closed", event);
-        document.getElementById("webSocketStatus").textContent = 'Not Connected';
-        document.getElementById('startButton').disabled = true;
-        document.getElementById('stopButton').disabled = true;
+        websocketStatus.textContent = 'Not Connected';
+        startButton.disabled = true;
+        stopButton.disabled = true;
     };
     websocket.onmessage = event => {
         console.log("Message from server:", event.data);
@@ -49,12 +51,12 @@ function updateTranscription(transcript_data) {
     const transcriptionDiv = document.getElementById('transcription');
     const languageDiv = document.getElementById('detected_language');
 
-    if (transcript_data['words'] && transcript_data['words'].length > 0) {
+    if (transcript_data.words && transcript_data.words.length > 0) {
         // Append words with color based on their probability
-        transcript_data['words'].forEach(wordData => {
+        transcript_data.words.forEach(wordData => {
             const span = document.createElement('span');
-            const probability = wordData['probability'];
-            span.textContent = wordData['word'] + ' ';
+            const probability = wordData.probability;
+            span.textContent = wordData.word + ' ';
 
             // Set the color based on the probability
             if (probability > 0.9) {
@@ -72,18 +74,18 @@ function updateTranscription(transcript_data) {
         transcriptionDiv.appendChild(document.createElement('br'));
     } else {
         // Fallback to plain text
-        transcriptionDiv.textContent += transcript_data['text'] + '\n';
+        transcriptionDiv.textContent += transcript_data.text + '\n';
     }
 
     // Update the language information
-    if (transcript_data['language'] && transcript_data['language_probability']) {
-        languageDiv.textContent = transcript_data['language'] + ' (' + transcript_data['language_probability'].toFixed(2) + ')';
+    if (transcript_data.language && transcript_data.language_probability) {
+        languageDiv.textContent = transcript_data.language + ' (' + transcript_data.language_probability.toFixed(2) + ')';
     }
 
     // Update the processing time, if available
     const processingTimeDiv = document.getElementById('processing_time');
-    if (transcript_data['processing_time']) {
-        processingTimeDiv.textContent = 'Processing time: ' + transcript_data['processing_time'].toFixed(2) + ' seconds';
+    if (transcript_data.processing_time) {
+        processingTimeDiv.textContent = 'Processing time: ' + transcript_data.processing_time.toFixed(2) + ' seconds';
     }
 }
 
@@ -95,13 +97,14 @@ function startRecording() {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     context = new AudioContext();
 
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+    navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
         globalStream = stream;
         const input = context.createMediaStreamSource(stream);
         processor = context.createScriptProcessor(bufferSize, 1, 1);
         processor.onaudioprocess = e => processAudio(e);
-        input.connect(processor);
-        processor.connect(context.destination);
+
+        // chain up the audio graph
+        input.connect(processor).connect(context.destination);
 
         sendAudioConfig();
     }).catch(error => console.error('Error accessing microphone', error));
@@ -147,7 +150,7 @@ function sendAudioConfig() {
             bufferSize: bufferSize,
             channels: 1, // Assuming mono channel
             language: language,
-            processing_strategy: selectedStrategy, 
+            processing_strategy: selectedStrategy,
             processing_args: processingArgs
         }
     };
@@ -159,15 +162,15 @@ function downsampleBuffer(buffer, inputSampleRate, outputSampleRate) {
     if (inputSampleRate === outputSampleRate) {
         return buffer;
     }
-    var sampleRateRatio = inputSampleRate / outputSampleRate;
-    var newLength = Math.round(buffer.length / sampleRateRatio);
-    var result = new Float32Array(newLength);
-    var offsetResult = 0;
-    var offsetBuffer = 0;
+    let sampleRateRatio = inputSampleRate / outputSampleRate;
+    let newLength = Math.round(buffer.length / sampleRateRatio);
+    let result = new Float32Array(newLength);
+    let offsetResult = 0;
+    let offsetBuffer = 0;
     while (offsetResult < result.length) {
-        var nextOffsetBuffer = Math.round((offsetResult + 1) * sampleRateRatio);
-        var accum = 0, count = 0;
-        for (var i = offsetBuffer; i < nextOffsetBuffer && i < buffer.length; i++) {
+        let nextOffsetBuffer = Math.round((offsetResult + 1) * sampleRateRatio);
+        let accum = 0, count = 0;
+        for (let i = offsetBuffer; i < nextOffsetBuffer && i < buffer.length; i++) {
             accum += buffer[i];
             count++;
         }
@@ -185,7 +188,7 @@ function processAudio(e) {
     const left = e.inputBuffer.getChannelData(0);
     const downsampledBuffer = downsampleBuffer(left, inputSampleRate, outputSampleRate);
     const audioData = convertFloat32ToInt16(downsampledBuffer);
-    
+
     if (websocket && websocket.readyState === WebSocket.OPEN) {
         websocket.send(audioData);
     }
@@ -204,13 +207,11 @@ function convertFloat32ToInt16(buffer) {
 //  window.onload = initWebSocket;
 
 function toggleBufferingStrategyPanel() {
-    var selectedStrategy = document.getElementById('bufferingStrategySelect').value;
+    let selectedStrategy = document.getElementById('bufferingStrategySelect').value;
+    let panel = document.getElementById('silence_at_end_of_chunk_options_panel');
     if (selectedStrategy === 'silence_at_end_of_chunk') {
-        var panel = document.getElementById('silence_at_end_of_chunk_options_panel');
         panel.classList.remove('hidden');
     } else {
-        var panel = document.getElementById('silence_at_end_of_chunk_options_panel');
         panel.classList.add('hidden');
     }
 }
-
