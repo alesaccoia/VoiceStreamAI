@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import json
+import logging
 
 from src.asr.asr_factory import ASRFactory
 from src.vad.vad_factory import VADFactory
@@ -59,11 +60,21 @@ def parse_args():
         default=None,
         help="The path to the SSL key file if using secure websockets",
     )
+    parser.add_argument(
+        "--log-level",
+        type=str,
+        default="error",
+        choices=["debug", "info", "warning", "error"],
+        help="Logging level: debug, info, warning, error. default: error",
+    )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
+
+    logging.basicConfig()
+    logging.getLogger().setLevel(args.log_level.upper())
 
     try:
         vad_args = json.loads(args.vad_args)

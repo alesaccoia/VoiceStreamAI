@@ -75,7 +75,7 @@
       display: none;
     }
   </style>
-  <script src='utils.js'></script>
+  <script defer src='utils.js'></script>
 </head>
 <body>
 <h1>Transcribe a Web Audio Stream with Huggingface VAD + Whisper</h1>
@@ -132,11 +132,11 @@
       <option value="greek">Greek</option>
     </select>
   </div>
-  <button onclick="initWebSocket()">Connect</button>
+  <button id="connectButton">Connect</button>
 </div>
-<button id="startButton" onclick='startRecording()' disabled>Start Streaming
+<button id="startButton" disabled>Start Streaming
 </button>
-<button id="stopButton" onclick='stopRecording()' disabled>Stop Streaming
+<button id="stopButton" disabled>Stop Streaming
 </button>
 <div id="transcription"></div>
 <br/>

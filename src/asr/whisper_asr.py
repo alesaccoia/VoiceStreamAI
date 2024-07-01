@@ -1,5 +1,6 @@
 import os
 
+import torch
 from transformers import pipeline
 
 from src.audio_utils import save_audio_to_file
@@ -9,9 +10,12 @@ from .asr_interface import ASRInterface
 
 class WhisperASR(ASRInterface):
     def __init__(self, **kwargs):
+        device = "cuda" if torch.cuda.is_available() else "cpu"
         model_name = kwargs.get("model_name", "openai/whisper-large-v3")
         self.asr_pipeline = pipeline(
-            "automatic-speech-recognition", model=model_name
+            "automatic-speech-recognition",
+            model=model_name,
+            device=device,
         )
 
     async def transcribe(self, client):

@@ -9,20 +9,44 @@ let websocket;
 let context;
 let processor;
 let globalStream;
-let language;
-
-const bufferSize = 4096;
 let isRecording = false;
 
-function initWebSocket() {
-    const websocketAddress = document.getElementById('websocketAddress');
-    const selectedLanguage = document.getElementById('languageSelect');
-    const websocketStatus = document.getElementById('webSocketStatus');
-    const startButton = document.getElementById('startButton');
-    const stopButton = document.getElementById('stopButton');
+const websocketAddress = document.querySelector('#websocketAddress');
+const selectedLanguage = document.querySelector('#languageSelect');
+const websocketStatus = document.querySelector('#webSocketStatus');
+const connectButton = document.querySelector("#connectButton");
+const startButton = document.querySelector('#startButton');
+const stopButton = document.querySelector('#stopButton');
+const transcriptionDiv = document.querySelector('#transcription');
+const languageDiv = document.querySelector('#detected_language');
+const processingTimeDiv = document.querySelector('#processing_time');
+const panel = document.querySelector('#silence_at_end_of_chunk_options_panel');
+const selectedStrategy = document.querySelector('#bufferingStrategySelect');
+const chunk_length_seconds = document.querySelector('#chunk_length_seconds');
+const chunk_offset_seconds = document.querySelector('#chunk_offset_seconds');
 
-    language = selectedLanguage.value !== 'multilingual' ? selectedLanguage.value : null;
+websocketAddress.addEventListener("input", resetWebsocketHandler);
 
+websocketAddress.addEventListener("keydown", (event) => {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        connectWebsocketHandler();
+    }
+});
+
+connectButton.addEventListener("click", connectWebsocketHandler);
+
+function resetWebsocketHandler() {
+    if (isRecording) {
+        stopRecordingHandler();
+    }
+    if (websocket.readyState === WebSocket.OPEN) {
+        websocket.close();
+    }
+    connectButton.disabled = false;
+}
+
+function connectWebsocketHandler() {
     if (!websocketAddress.value) {
         console.log("WebSocket address is required.");
         return;
@@ -33,12 +57,14 @@ function initWebSocket() {
         console.log("WebSocket connection established");
         websocketStatus.textContent = 'Connected';
         startButton.disabled = false;
+        connectButton.disabled = true;
     };
     websocket.onclose = event => {
         console.log("WebSocket connection closed", event);
         websocketStatus.textContent = 'Not Connected';
         startButton.disabled = true;
         stopButton.disabled = true;
+        connectButton.disabled = false;
     };
     websocket.onmessage = event => {
         console.log("Message from server:", event.data);
@@ -48,10 +74,7 @@ function initWebSocket() {
 }
 
 function updateTranscription(transcript_data) {
-    const transcriptionDiv = document.getElementById('transcription');
-    const languageDiv = document.getElementById('detected_language');
-
-    if (transcript_data.words && transcript_data.words.length > 0) {
+    if (Array.isArray(transcript_data.words) && transcript_data.words.length > 0) {
         // Append words with color based on their probability
         transcript_data.words.forEach(wordData => {
             const span = document.createElement('span');
@@ -74,47 +97,75 @@ function updateTranscription(transcript_data) {
         transcriptionDiv.appendChild(document.createElement('br'));
     } else {
         // Fallback to plain text
-        transcriptionDiv.textContent += transcript_data.text + '\n';
+        const span = document.createElement('span');
+        span.textContent = transcript_data.text;
+        transcriptionDiv.appendChild(span);
+        transcriptionDiv.appendChild(document.createElement('br'));
     }
 
     // Update the language information
     if (transcript_data.language && transcript_data.language_probability) {
         languageDiv.textContent = transcript_data.language + ' (' + transcript_data.language_probability.toFixed(2) + ')';
+    } else {
+        languageDiv.textContent = 'Not Supported';
     }
 
     // Update the processing time, if available
-    const processingTimeDiv = document.getElementById('processing_time');
     if (transcript_data.processing_time) {
         processingTimeDiv.textContent = 'Processing time: ' + transcript_data.processing_time.toFixed(2) + ' seconds';
     }
 }
 
+startButton.addEventListener("click", startRecordingHandler);
 
-function startRecording() {
+function startRecordingHandler() {
     if (isRecording) return;
     isRecording = true;
 
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
     context = new AudioContext();
 
-    navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
+    let onSuccess = async (stream) => {
+        // Push user config to server
+        let language = selectedLanguage.value !== 'multilingual' ? selectedLanguage.value : null;
+        sendAudioConfig(language);
+
         globalStream = stream;
         const input = context.createMediaStreamSource(stream);
-        processor = context.createScriptProcessor(bufferSize, 1, 1);
-        processor.onaudioprocess = e => processAudio(e);
-
-        // chain up the audio graph
-        input.connect(processor).connect(context.destination);
-
-        sendAudioConfig();
-    }).catch(error => console.error('Error accessing microphone', error));
+        const recordingNode = await setupRecordingWorkletNode();
+        recordingNode.port.onmessage = (event) => {
+            processAudio(event.data);
+        };
+        input.connect(recordingNode);
+    };
+    let onError = (error) => {
+        console.error(error);
+    };
+    navigator.mediaDevices.getUserMedia({
+        audio: {
+            echoCancellation: true,
+            autoGainControl: false,
+            noiseSuppression: true,
+            latency: 0
+        }
+    }).then(onSuccess, onError);
 
     // Disable start button and enable stop button
-    document.getElementById('startButton').disabled = true;
-    document.getElementById('stopButton').disabled = false;
+    startButton.disabled = true;
+    stopButton.disabled = false;
 }
 
-function stopRecording() {
+async function setupRecordingWorkletNode() {
+    await context.audioWorklet.addModule('realtime-audio-processor.js');
+
+    return new AudioWorkletNode(
+        context,
+        'realtime-audio-processor'
+    );
+}
+
+stopButton.addEventListener("click", stopRecordingHandler);
+
+function stopRecordingHandler() {
     if (!isRecording) return;
     isRecording = false;
 
@@ -128,18 +179,17 @@ function stopRecording() {
     if (context) {
         context.close().then(() => context = null);
     }
-    document.getElementById('startButton').disabled = false;
-    document.getElementById('stopButton').disabled = true;
+    startButton.disabled = false;
+    stopButton.disabled = true;
 }
 
-function sendAudioConfig() {
-    let selectedStrategy = document.getElementById('bufferingStrategySelect').value;
+function sendAudioConfig(language) {
     let processingArgs = {};
 
-    if (selectedStrategy === 'silence_at_end_of_chunk') {
+    if (selectedStrategy.value === 'silence_at_end_of_chunk') {
         processingArgs = {
-            chunk_length_seconds: parseFloat(document.getElementById('chunk_length_seconds').value),
-            chunk_offset_seconds: parseFloat(document.getElementById('chunk_offset_seconds').value)
+            chunk_length_seconds: parseFloat(chunk_length_seconds.value),
+            chunk_offset_seconds: parseFloat(chunk_offset_seconds.value)
         };
     }
 
@@ -147,10 +197,9 @@ function sendAudioConfig() {
         type: 'config',
         data: {
             sampleRate: context.sampleRate,
-            bufferSize: bufferSize,
-            channels: 1, // Assuming mono channel
+            channels: 1,
             language: language,
-            processing_strategy: selectedStrategy,
+            processing_strategy: selectedStrategy.value,
             processing_args: processingArgs
         }
     };
@@ -158,12 +207,32 @@ function sendAudioConfig() {
     websocket.send(JSON.stringify(audioConfig));
 }
 
-function downsampleBuffer(buffer, inputSampleRate, outputSampleRate) {
-    if (inputSampleRate === outputSampleRate) {
-        return buffer;
+function processAudio(sampleData) {
+    // ASR (Automatic Speech Recognition) and VAD (Voice Activity Detection)
+    // models typically require mono audio with a sampling rate of 16 kHz,
+    // represented as a signed int16 array type.
+    //
+    // Implementing changes to the sampling rate using JavaScript can reduce
+    // computational costs on the server.
+    const outputSampleRate = 16000;
+    const decreaseResultBuffer = decreaseSampleRate(sampleData, context.sampleRate, outputSampleRate);
+    const audioData = convertFloat32ToInt16(decreaseResultBuffer);
+
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+        websocket.send(audioData);
     }
+}
+
+function decreaseSampleRate(buffer, inputSampleRate, outputSampleRate) {
+    if (inputSampleRate < outputSampleRate) {
+        console.error("Sample rate too small.");
+        return;
+    } else if (inputSampleRate === outputSampleRate) {
+        return;
+    }
+
     let sampleRateRatio = inputSampleRate / outputSampleRate;
-    let newLength = Math.round(buffer.length / sampleRateRatio);
+    let newLength = Math.ceil(buffer.length / sampleRateRatio);
     let result = new Float32Array(newLength);
     let offsetResult = 0;
     let offsetBuffer = 0;
@@ -181,19 +250,6 @@ function downsampleBuffer(buffer, inputSampleRate, outputSampleRate) {
     return result;
 }
 
-function processAudio(e) {
-    const inputSampleRate = context.sampleRate;
-    const outputSampleRate = 16000; // Target sample rate
-
-    const left = e.inputBuffer.getChannelData(0);
-    const downsampledBuffer = downsampleBuffer(left, inputSampleRate, outputSampleRate);
-    const audioData = convertFloat32ToInt16(downsampledBuffer);
-
-    if (websocket && websocket.readyState === WebSocket.OPEN) {
-        websocket.send(audioData);
-    }
-}
-
 function convertFloat32ToInt16(buffer) {
     let l = buffer.length;
     const buf = new Int16Array(l);
@@ -207,9 +263,7 @@ function convertFloat32ToInt16(buffer) {
 //  window.onload = initWebSocket;
 
 function toggleBufferingStrategyPanel() {
-    let selectedStrategy = document.getElementById('bufferingStrategySelect').value;
-    let panel = document.getElementById('silence_at_end_of_chunk_options_panel');
-    if (selectedStrategy === 'silence_at_end_of_chunk') {
+    if (selectedStrategy.value === 'silence_at_end_of_chunk') {
         panel.classList.remove('hidden');
     } else {
         panel.classList.add('hidden');
