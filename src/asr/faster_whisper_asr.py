@@ -112,10 +112,15 @@ language_codes = {
 
 class FasterWhisperASR(ASRInterface):
     def __init__(self, **kwargs):
-        model_size = kwargs.get("model_size", "large-v3")
-        # Run on GPU with FP16
+        model_size_or_path = kwargs.get("model_size_or_path", kwargs.get("model_size", "large-v3"))
+        device = kwargs.get("device", "cuda")
+        compute_type = kwargs.get("compute_type", "float16")
+        
+        # Run on GPU with FP16 by default, or use provided parameters
         self.asr_pipeline = WhisperModel(
-            model_size, device="cuda", compute_type="float16"
+            model_size_or_path, 
+            device=device, 
+            compute_type=compute_type
         )
 
     async def transcribe(self, client):
