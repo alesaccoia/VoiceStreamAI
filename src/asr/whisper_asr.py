@@ -1,9 +1,9 @@
-import os
+import asyncio
 
 import torch
 from transformers import pipeline
 
-from src.audio_utils import save_audio_to_file
+from src.utils.audio_utils import convert_audio_bytes_to_numpy
 
 from .asr_interface import ASRInterface
 
@@ -19,19 +19,18 @@ class WhisperASR(ASRInterface):
         )
 
     async def transcribe(self, client):
-        file_path = await save_audio_to_file(
-            client.scratch_buffer, client.get_file_name()
-        )
+        audio = convert_audio_bytes_to_numpy(client.scratch_buffer)
 
         if client.config["language"] is not None:
-            to_return = self.asr_pipeline(
-                file_path,
+            result = await asyncio.to_thread(
+                self.asr_pipeline,
+                audio,
                 generate_kwargs={"language": client.config["language"]},
-            )["text"]
+            )
         else:
-            to_return = self.asr_pipeline(file_path)["text"]
+            result = await asyncio.to_thread(self.asr_pipeline, audio)
 
-        os.remove(file_path)
+        to_return = result["text"]
 
         to_return = {
             "language": "UNSUPPORTED_BY_HUGGINGFACE_WHISPER",

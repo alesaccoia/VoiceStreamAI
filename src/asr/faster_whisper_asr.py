@@ -1,8 +1,10 @@
-import os
+import asyncio
+
+import torch
 
 from faster_whisper import WhisperModel
 
-from src.audio_utils import save_audio_to_file
+from src.utils.audio_utils import convert_audio_bytes_to_numpy
 
 from .asr_interface import ASRInterface
 
@@ -112,28 +114,34 @@ language_codes = {
 
 class FasterWhisperASR(ASRInterface):
     def __init__(self, **kwargs):
-        model_size = kwargs.get("model_size", "large-v3")
-        # Run on GPU with FP16
+        model_size = kwargs.get(
+            "model_size_or_path", kwargs.get("model_size", "large-v3")
+        )
+        default_device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = kwargs.get("device", default_device)
+        compute_type = kwargs.get(
+            "compute_type", "float16" if device == "cuda" else "int8"
+        )
         self.asr_pipeline = WhisperModel(
-            model_size, device="cuda", compute_type="float16"
+            model_size, device=device, compute_type=compute_type
         )
 
     async def transcribe(self, client):
-        file_path = await save_audio_to_file(
-            client.scratch_buffer, client.get_file_name()
-        )
+        audio = convert_audio_bytes_to_numpy(client.scratch_buffer)
 
         language = (
             None
             if client.config["language"] is None
             else language_codes.get(client.config["language"].lower())
         )
-        segments, info = self.asr_pipeline.transcribe(
-            file_path, word_timestamps=True, language=language
-        )
 
-        segments = list(segments)  # The transcription will actually run here.
-        os.remove(file_path)
+        def transcribe():
+            segments, info = self.asr_pipeline.transcribe(
+                audio, word_timestamps=True, language=language
+            )
+            return list(segments), info
+
+        segments, info = await asyncio.to_thread(transcribe)
 
         flattened_words = [
             word for segment in segments for word in segment.words

@@ -17,13 +17,13 @@ def parse_args():
     parser.add_argument(
         "--vad-type",
         type=str,
-        default="pyannote",
-        help="Type of VAD pipeline to use (e.g., 'pyannote')",
+        default="silero",
+        help="Type of VAD pipeline ('silero', 'pyannote', or 'none')",
     )
     parser.add_argument(
         "--vad-args",
         type=str,
-        default='{"auth_token": "huggingface_token"}',
+        default="{}",
         help="JSON string of additional arguments for VAD pipeline",
     )
     parser.add_argument(
@@ -70,7 +70,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def main():
+async def main():
     args = parse_args()
 
     logging.basicConfig()
@@ -97,9 +97,9 @@ def main():
         keyfile=args.keyfile,
     )
 
-    asyncio.get_event_loop().run_until_complete(server.start())
-    asyncio.get_event_loop().run_forever()
+    await server.start()
+    await asyncio.Future()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
