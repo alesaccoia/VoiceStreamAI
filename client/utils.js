@@ -40,7 +40,7 @@ function resetWebsocketHandler() {
     if (isRecording) {
         stopRecordingHandler();
     }
-    if (websocket.readyState === WebSocket.OPEN) {
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
         websocket.close();
     }
     connectButton.disabled = false;
