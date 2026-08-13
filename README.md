@@ -96,9 +96,9 @@ allowing you to specify components, host, and port settings according to your
 needs.
 
 - `--vad-type`: Specifies the type of Voice Activity Detection (VAD) pipeline to
-  use (default: `pyannote`) .
+  use: `silero` (the token-free default), `pyannote`, or `none`.
 - `--vad-args`: A JSON string containing additional arguments for the VAD
-  pipeline. (required for `pyannote`: `'{"auth_token": "VAD_AUTH_HERE"}'`)
+  pipeline. For `pyannote`, provide `'{"auth_token": "VAD_AUTH_HERE"}'`.
 - `--asr-type`: Specifies the type of Automatic Speech Recognition (ASR)
   pipeline to use (default: `faster_whisper`).
 - `--asr-args`: A JSON string containing additional arguments for the ASR
@@ -111,14 +111,19 @@ needs.
 - `--keyfile`: The path to the SSL key file if using secure websockets (
   default: `None`)
 
-For running the server with the standard configuration:
-
-1. Obtain the key to the Voice-Activity-Detection model
-   at [https://huggingface.co/pyannote/segmentation](https://huggingface.co/pyannote/segmentation)
-2. Run the server using Python 3.x, please add the VAD key in the command line:
+For a token-free GPU setup using Silero VAD and a small Whisper model:
 
 ```bash
-python3 -m src.main --vad-args '{"auth_token": "vad token here"}'
+python3 -m src.main --host 0.0.0.0 --port 6006 \
+  --asr-args '{"model_size": "tiny"}'
+```
+
+For Pyannote VAD, obtain a token from
+[pyannote/segmentation](https://huggingface.co/pyannote/segmentation) and run:
+
+```bash
+python3 -m src.main --vad-type pyannote \
+  --vad-args '{"auth_token": "vad token here"}'
 ```
 
 You can see all the command line options with the command:

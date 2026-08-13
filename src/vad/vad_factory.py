@@ -1,6 +1,3 @@
-from .pyannote_vad import PyannoteVAD
-
-
 class VADFactory:
     """
     Factory for creating instances of VAD systems.
@@ -19,6 +16,14 @@ class VADFactory:
             VADInterface: An instance of a class that implements VADInterface.
         """
         if type == "pyannote":
+            from .pyannote_vad import PyannoteVAD
+
             return PyannoteVAD(**kwargs)
+        if type == "silero":
+            from .silero_vad import SileroVAD
+
+            return SileroVAD(**kwargs)
+        if type in (None, "none"):
+            return None
         else:
             raise ValueError(f"Unknown VAD pipeline type: {type}")

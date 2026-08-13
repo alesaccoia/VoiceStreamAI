@@ -50,6 +50,7 @@ class Client:
         )
 
     def update_config(self, config_data):
+        self.buffering_strategy.close()
         self.config.update(config_data)
         self.buffering_strategy = (
             BufferingStrategyFactory.create_buffering_strategy(
@@ -76,3 +77,6 @@ class Client:
         self.buffering_strategy.process_audio(
             websocket, vad_pipeline, asr_pipeline
         )
+
+    def close(self):
+        self.buffering_strategy.close()

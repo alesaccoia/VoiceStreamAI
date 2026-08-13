@@ -80,6 +80,7 @@ class Server:
         except websockets.ConnectionClosed as e:
             print(f"Connection with {client_id} closed: {e}")
         finally:
+            client.close()
             del self.connected_clients[client_id]
 
     def start(self):
@@ -107,7 +108,7 @@ class Server:
             )
         else:
             print(
-                f"WebSocket server ready to accept secure connections on "
+                f"WebSocket server ready to accept connections on "
                 f"{self.host}:{self.port}"
             )
             return websockets.serve(

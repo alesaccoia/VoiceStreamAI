@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 import time
 
@@ -49,13 +50,9 @@ class SilenceAtEndOfChunk(BufferingStrategyInterface):
             self.chunk_offset_seconds = kwargs.get("chunk_offset_seconds")
         self.chunk_offset_seconds = float(self.chunk_offset_seconds)
 
-        self.error_if_not_realtime = os.environ.get("ERROR_IF_NOT_REALTIME")
-        if not self.error_if_not_realtime:
-            self.error_if_not_realtime = kwargs.get(
-                "error_if_not_realtime", False
-            )
-
-        self.processing_flag = False
+        self.pending_audio = bytearray()
+        self.processing_task = None
+        self.retry_after_bytes = 0
 
     def process_audio(self, websocket, vad_pipeline, asr_pipeline):
         """
@@ -75,22 +72,42 @@ class SilenceAtEndOfChunk(BufferingStrategyInterface):
             * self.client.sampling_rate
             * self.client.samples_width
         )
-        if len(self.client.buffer) > chunk_length_in_bytes:
-            if self.processing_flag:
-                exit(
-                    "Error in realtime processing: tried processing a new "
-                    "chunk while the previous one was still being processed"
-                )
-
-            self.client.scratch_buffer += self.client.buffer
+        if self.client.buffer:
+            self.pending_audio.extend(self.client.buffer)
             self.client.buffer.clear()
-            self.processing_flag = True
-            # Schedule the processing in a separate task
-            asyncio.create_task(
-                self.process_audio_async(websocket, vad_pipeline, asr_pipeline)
-            )
+        self._start_processing_if_ready(
+            websocket, vad_pipeline, asr_pipeline, chunk_length_in_bytes
+        )
 
-    async def process_audio_async(self, websocket, vad_pipeline, asr_pipeline):
+    def _start_processing_if_ready(
+        self, websocket, vad_pipeline, asr_pipeline, chunk_length_in_bytes
+    ):
+        if self.processing_task is not None or len(self.pending_audio) < max(
+            chunk_length_in_bytes, self.retry_after_bytes
+        ):
+            return
+
+        audio = bytes(self.pending_audio)
+        self.pending_audio.clear()
+        self.retry_after_bytes = 0
+        self.processing_task = asyncio.get_running_loop().create_task(
+            self.process_audio_async(
+                audio,
+                websocket,
+                vad_pipeline,
+                asr_pipeline,
+                chunk_length_in_bytes,
+            )
+        )
+
+    async def process_audio_async(
+        self,
+        audio,
+        websocket,
+        vad_pipeline,
+        asr_pipeline,
+        chunk_length_in_bytes,
+    ):
         """
         Asynchronously process audio for activity detection and transcription.
 
@@ -104,27 +121,56 @@ class SilenceAtEndOfChunk(BufferingStrategyInterface):
             vad_pipeline: The voice activity detection pipeline.
             asr_pipeline: The automatic speech recognition pipeline.
         """
-        start = time.time()
-        vad_results = await vad_pipeline.detect_activity(self.client)
+        try:
+            start = time.time()
+            self.client.scratch_buffer = bytearray(audio)
+            if vad_pipeline is None:
+                vad_results = [{"end": 0.0}]
+                speech_finished = True
+            else:
+                vad_results = await vad_pipeline.detect_activity(self.client)
+                speech_finished = bool(vad_results) and vad_results[-1][
+                    "end"
+                ] < (
+                    len(audio)
+                    / (self.client.sampling_rate * self.client.samples_width)
+                    - self.chunk_offset_seconds
+                )
 
-        if len(vad_results) == 0:
+            if not vad_results:
+                return
+
+            if speech_finished:
+                transcription = await asr_pipeline.transcribe(self.client)
+                if transcription["text"]:
+                    transcription["processing_time"] = time.time() - start
+                    await websocket.send(json.dumps(transcription))
+                self.client.increment_file_counter()
+            else:
+                # Keep unfinished speech and wait for at least one offset of
+                # new audio before retrying, without dropping incoming data.
+                self.pending_audio = bytearray(audio) + self.pending_audio
+                self.retry_after_bytes = len(audio) + int(
+                    self.chunk_offset_seconds
+                    * self.client.sampling_rate
+                    * self.client.samples_width
+                )
+        except Exception:
+            logging.exception(
+                "Audio processing failed for client %s", self.client.client_id
+            )
+        finally:
             self.client.scratch_buffer.clear()
-            self.client.buffer.clear()
-            self.processing_flag = False
-            return
+            self.processing_task = None
+            chunk_length_in_bytes = (
+                self.chunk_length_seconds
+                * self.client.sampling_rate
+                * self.client.samples_width
+            )
+            self._start_processing_if_ready(
+                websocket, vad_pipeline, asr_pipeline, chunk_length_in_bytes
+            )
 
-        last_segment_should_end_before = (
-            len(self.client.scratch_buffer)
-            / (self.client.sampling_rate * self.client.samples_width)
-        ) - self.chunk_offset_seconds
-        if vad_results[-1]["end"] < last_segment_should_end_before:
-            transcription = await asr_pipeline.transcribe(self.client)
-            if transcription["text"] != "":
-                end = time.time()
-                transcription["processing_time"] = end - start
-                json_transcription = json.dumps(transcription)
-                await websocket.send(json_transcription)
-            self.client.scratch_buffer.clear()
-            self.client.increment_file_counter()
-
-        self.processing_flag = False
+    def close(self):
+        if self.processing_task is not None:
+            self.processing_task.cancel()
